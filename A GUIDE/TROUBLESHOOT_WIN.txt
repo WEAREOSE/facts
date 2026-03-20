@@ -1,0 +1,398 @@
+================================================================
+              facts. TROUBLESHOOTING GUIDE
+                     Windows
+================================================================
+
+  This guide covers every known issue you may encounter when
+  running facts. on Windows. Work through the issues in order.
+  If nothing here solves your problem, contact us (see bottom).
+
+
+================================================================
+  ISSUE 1: Windows Defender "Windows protected your PC" warning
+================================================================
+
+  This is the most common issue. It is completely normal.
+
+  CAUSE: Windows SmartScreen flags llama-cli.exe as an
+  "unrecognized app" because it is an open-source binary
+  that is not signed with a Microsoft certificate. This is
+  NOT malware. llama.cpp is a widely used, MIT-licensed,
+  open-source project trusted by millions of developers.
+
+  FIX:
+
+    1. When you see the blue "Windows protected your PC"
+       screen, click "More info" (this link is easy to miss
+       -- look for it below the warning text).
+    2. A "Run anyway" button will appear at the bottom.
+    3. Click "Run anyway."
+    4. The AI will start loading.
+
+  This only needs to be done ONCE. Windows remembers your
+  choice for future launches.
+
+  IF "MORE INFO" DOES NOT APPEAR:
+
+    1. Open Windows Security (search "Windows Security" in
+       the Start menu).
+    2. Click "App & browser control."
+    3. Click "Reputation-based protection settings."
+    4. Temporarily turn OFF "Check apps and files."
+    5. Run WinLaunch.bat again.
+    6. After the AI loads successfully, turn the setting
+       back ON.
+
+
+================================================================
+  ISSUE 2: Antivirus software blocks or quarantines the file
+================================================================
+
+  CAUSE: Some antivirus programs (Norton, McAfee, Avast,
+  Bitdefender, etc.) may flag llama-cli.exe as suspicious
+  because it is an unsigned binary that runs from a USB drive.
+
+  FIX:
+
+    1. Open your antivirus software.
+    2. Find the quarantine or blocked files section.
+    3. Restore llama-cli.exe and add it to your exceptions
+       or allowed list.
+    4. Also add the entire flash drive (e.g., D:\.system\)
+       to the antivirus exclusion list.
+    5. Re-run WinLaunch.bat.
+
+  FOR WINDOWS DEFENDER SPECIFICALLY:
+
+    1. Open Windows Security > Virus & threat protection.
+    2. Click "Protection history."
+    3. Find the blocked item (llama-cli.exe).
+    4. Click it and select "Allow on device."
+
+  OR add an exclusion:
+
+    1. Windows Security > Virus & threat protection.
+    2. Click "Manage settings" under Virus & threat
+       protection settings.
+    3. Scroll to "Exclusions" and click "Add or remove
+       exclusions."
+    4. Click "Add an exclusion" > Folder.
+    5. Select the .system folder on your flash drive.
+
+
+================================================================
+  ISSUE 3: "ERROR: No models found!" or model fails to load
+================================================================
+
+  CAUSE A -- Files are missing:
+
+    1. Open File Explorer and navigate to the flash drive.
+    2. In the View menu, check "Hidden items" to show
+       hidden files and folders.
+    3. You should see a folder called .system.
+    4. Open it. You should see these files:
+       - llama-cli.exe
+       - Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf
+       - Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf
+
+    If any files are missing, the drive may be corrupted.
+    Contact us for a replacement (see bottom).
+
+  CAUSE B -- Antivirus deleted the file:
+
+    Your antivirus may have silently removed llama-cli.exe.
+    Check your antivirus quarantine (see Issue 2 above).
+
+  CAUSE C -- File path too long:
+
+    If the drive letter plus the folder path is very long,
+    Windows may fail to read the files.
+
+    FIX: Make sure the drive is mounted at a short path
+    like D:\ or E:\. Do NOT copy the files into a deeply
+    nested folder on your computer.
+
+
+================================================================
+  ISSUE 4: The command prompt opens and closes immediately
+================================================================
+
+  CAUSE A -- Antivirus killed the process:
+    Check your antivirus quarantine (see Issue 2).
+
+  CAUSE B -- The batch file has an error:
+
+    FIX: Run the launcher manually to see the error message:
+    1. Press Win+R to open Run.
+    2. Type: cmd
+    3. Press Enter to open Command Prompt.
+    4. Type the drive letter and press Enter. For example:
+
+       D:
+
+    5. Then type:
+
+       WinLaunch.bat
+
+    6. The error message will stay visible in the window
+       instead of closing. Note the exact error and contact
+       us if you cannot resolve it.
+
+
+================================================================
+  ISSUE 5: The AI loads but is extremely slow
+================================================================
+
+  CAUSE A -- Not enough RAM:
+
+    The AI requires at least 8 GB of RAM. If your computer
+    is using most of its RAM, performance will suffer badly.
+
+    HOW TO CHECK YOUR RAM:
+    1. Press Ctrl+Shift+Esc to open Task Manager.
+    2. Click the "Performance" tab.
+    3. Click "Memory" in the sidebar.
+    4. Look at two things:
+       - "Installed RAM" (top right) -- your total RAM.
+       - "Available" (bottom section) -- RAM currently free.
+
+    You need at least 4 GB of available RAM for the AI to
+    run smoothly. If you have less than 4 GB available:
+
+    FIX: Close other applications. Web browsers are the
+    biggest RAM consumers. Close Chrome, Edge, or Firefox
+    entirely (not just minimize -- right-click the taskbar
+    icon and click "Close window"). Then relaunch.
+
+    If your computer has only 4 GB of total RAM, facts.
+    will not run. The minimum requirement is 8 GB.
+
+  CAUSE B -- USB adapter or hub issue:
+
+    If the drive is connected through a USB hub, dock, or
+    adapter that does not support high-speed data transfer,
+    the model will load extremely slowly or may fail.
+
+    FIX: Plug the drive directly into a USB port on the
+    computer. If your computer only has USB-C ports and you
+    need an adapter, make sure it explicitly supports USB 3.0
+    data transfer (not just charging). Cheap no-brand dongles
+    and charging-only cables will NOT work.
+
+    HOW TO TELL IF YOUR ADAPTER IS THE PROBLEM:
+    1. Open File Explorer.
+    2. Right-click the flash drive and select "Properties."
+    3. Note the drive size. If it shows the correct capacity
+       (around 29 GB usable), the adapter is passing data.
+    4. If the drive does not appear at all, the adapter is
+       likely charging-only or defective.
+
+  CAUSE C -- USB 2.0 port:
+
+    USB 2.0 ports are much slower than USB 3.0. The initial
+    model load may take several minutes.
+
+    HOW TO TELL: USB 3.0 ports are often blue on the inside.
+    USB 2.0 ports are usually black. If your computer only
+    has USB 2.0, the first load will be slow but the AI will
+    run at normal speed once loaded into RAM.
+
+
+================================================================
+  ISSUE 6: The AI crashes or freezes mid-conversation
+================================================================
+
+  CAUSE A -- Out of memory:
+
+    Long conversations fill the AI's context window and may
+    exhaust available RAM.
+
+    FIX: Close the window. Relaunch WinLaunch.bat. The
+    Nuclear Wipe clears everything and starts fresh.
+
+  CAUSE B -- Ghost process:
+
+    A previous llama-cli.exe process may still be running.
+
+    FIX:
+    1. Press Ctrl+Shift+Esc to open Task Manager.
+    2. Look for "llama-cli" or "llama-cli.exe" in the list.
+    3. Select it and click "End task."
+    4. Relaunch WinLaunch.bat.
+
+  CAUSE C -- Drive was disconnected:
+
+    If the USB drive loses connection while running (bumped,
+    loose port, adapter issue), the AI will crash.
+
+    FIX: Ensure the drive is firmly seated. Relaunch.
+
+
+================================================================
+  ISSUE 7: "This app can't run on your PC" error
+================================================================
+
+  CAUSE: The llama-cli.exe binary may be incompatible with
+  your system architecture.
+
+  CHECK: Make sure you are running 64-bit Windows:
+    1. Open Settings > System > About.
+    2. Under "System type," it should say "64-bit operating
+       system."
+    3. If it says "32-bit," facts. is not compatible with
+       your system.
+
+
+================================================================
+  ISSUE 8: The AI refuses to answer or gives censored responses
+================================================================
+
+  CAUSE: Occasionally the model may fall into a pattern of
+  refusing certain prompts, especially during very long
+  conversations.
+
+  FIX:
+    1. Close the window or press Ctrl+C.
+    2. Relaunch WinLaunch.bat.
+    3. The Nuclear Wipe clears all context. The AI starts
+       fresh with zero memory of the previous conversation.
+    4. Rephrase your question.
+
+
+================================================================
+  ISSUE 9: Drive does not appear in File Explorer
+================================================================
+
+  CAUSE A -- Drive is not assigned a letter:
+    1. Press Win+R, type diskmgmt.msc, press Enter.
+    2. Look for a removable drive in the list.
+    3. If it appears but has no drive letter, right-click it,
+       select "Change Drive Letter and Paths," and assign
+       a letter (e.g., D: or E:).
+
+  CAUSE B -- USB adapter issue:
+    Try a different USB port or a different adapter. Some
+    USB-C adapters and hubs do not support data transfer.
+
+  CAUSE C -- Drive needs formatting:
+    If the drive appears in Disk Management as "RAW" or
+    "Unallocated," the file system may be corrupted.
+    Contact us for a replacement. DO NOT format the drive
+    -- this will erase all data including the AI.
+
+
+================================================================
+  ISSUE 10: "Access is denied" error
+================================================================
+
+  CAUSE: Windows is preventing the batch file or the binary
+  from running due to user account permissions.
+
+  FIX (Run as Administrator):
+    1. Right-click WinLaunch.bat.
+    2. Select "Run as administrator."
+    3. Click "Yes" on the User Account Control prompt.
+
+  If this fixes the issue, you can set it to always run as
+  admin:
+    1. Right-click WinLaunch.bat > Properties.
+    2. Go to the Compatibility tab.
+    3. Check "Run this program as an administrator."
+    4. Click OK.
+
+
+================================================================
+  ISSUE 11: Text appears garbled or characters are wrong
+================================================================
+
+  CAUSE: The Command Prompt may not be using a font that
+  supports all characters the AI outputs.
+
+  FIX:
+    1. Right-click the title bar of the Command Prompt window.
+    2. Select "Properties."
+    3. Go to the "Font" tab.
+    4. Select "Consolas" or "Lucida Console."
+    5. Set size to 16 or 18 for readability.
+    6. Click OK.
+
+
+================================================================
+  ISSUE 12: Windows 10 -- additional notes
+================================================================
+
+  Windows 10 may require an additional step for SmartScreen:
+
+    1. Open Settings > Update & Security > Windows Security.
+    2. Click "App & browser control."
+    3. Under "Check apps and files," set to "Warn" (not
+       "Block").
+    4. Relaunch WinLaunch.bat.
+
+  If you are running an older build of Windows 10 (prior to
+  version 1903), some features of llama.cpp may not work
+  correctly. Make sure Windows is up to date:
+
+    Settings > Update & Security > Windows Update >
+    Check for updates.
+
+
+================================================================
+  HOW TO CHECK IF RAM IS THE PROBLEM
+================================================================
+
+  This is a common issue. Here is the definitive way to check:
+
+  1. Press Ctrl+Shift+Esc to open Task Manager.
+  2. Click "Performance" > "Memory."
+  3. Note your total installed RAM and available RAM.
+
+  MINIMUM REQUIREMENTS:
+    - Total RAM: 8 GB (absolute minimum)
+    - Available RAM when launching: at least 4 GB free
+
+  IF YOU HAVE 8 GB TOTAL:
+    - Close ALL other apps before launching
+    - The AI will load the smaller Q4 model automatically
+    - Performance will be usable but not fast
+
+  IF YOU HAVE 4 GB OR LESS:
+    - facts. will not run on your machine
+    - You may see the window open and close immediately,
+      or get a "not enough memory" error
+
+  IF YOU HAVE 16 GB OR MORE:
+    - The AI automatically loads the high-quality Q8 model
+    - You can keep other apps open
+    - Best experience
+
+
+================================================================
+  STILL NOT WORKING?
+================================================================
+
+  If none of the above solved your problem, reach out to us.
+  We are real people and we will help you.
+
+  Before contacting us, please note:
+    - Your Windows version (e.g., Windows 11 Home 23H2)
+    - Your RAM (e.g., 8 GB or 16 GB)
+    - Your processor (e.g., Intel i5 or AMD Ryzen 5)
+    - The exact error message (a screenshot helps)
+
+  HOW TO FIND YOUR SYSTEM INFO:
+    1. Press Win+R, type msinfo32, press Enter.
+    2. Note: OS Name, Processor, and Installed Physical
+       Memory (RAM).
+
+  Email:     support@opensourceeverything.io
+  Instagram: @open.source.everything
+  Website:   opensourceeverything.io
+
+  We typically respond within 24 hours.
+
+
+================================================================
+          For the people. By the people.
+               opensourceeverything.io
+================================================================

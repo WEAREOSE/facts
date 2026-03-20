@@ -1,0 +1,22 @@
+# Large binaries — download these separately (see README)
+.system/*.gguf
+.system/llamafile.exe
+.system/llama-b7751-bin-macos-arm64.tar.gz
+
+# macOS junk
+.DS_Store
+._*
+.Spotlight-V100/
+.fseventsd/
+.Trashes/
+
+# Windows junk
+Thumbs.db
+System Volume Information/
+IndexerVolumeGuid
+WPSettings.dat
+
+# Session files (should never exist, but just in case)
+*.session
+*.chat.history
+.llama_history

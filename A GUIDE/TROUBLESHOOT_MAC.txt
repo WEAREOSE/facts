@@ -1,0 +1,321 @@
+================================================================
+              facts. TROUBLESHOOTING GUIDE
+                      macOS
+================================================================
+
+  This guide covers every known issue you may encounter when
+  running facts. on a Mac. Work through the issues in order.
+  If nothing here solves your problem, contact us (see bottom).
+
+
+================================================================
+  ISSUE 1: "MacLaunch.command" won't open / nothing happens
+================================================================
+
+  CAUSE: macOS is blocking the file because it is booting
+  from an external source (the flash drive).
+
+  FIX (Method A -- Right-Click):
+
+    1. Right-click (or Control-click) on MacLaunch.command.
+    2. Select "Open" from the menu.
+    3. A dialog will appear warning about an unidentified
+       developer. Click "Open" to proceed.
+    4. This only needs to be done once. After that, you can
+       double-click normally.
+
+  FIX (Method B -- System Settings):
+
+    1. Open System Settings (or System Preferences).
+    2. Go to Privacy & Security.
+    3. Scroll down. You should see a message like
+       "MacLaunch.command was blocked."
+    4. Click "Open Anyway."
+
+  FIX (Method C -- Terminal):
+
+    If the above methods fail, open Terminal manually:
+
+    1. Open Terminal (search "Terminal" in Spotlight, or find
+       it in Applications > Utilities).
+    2. Type the following command and press Enter:
+
+       bash /Volumes/facts/MacLaunch.command
+
+       NOTE: If your drive has a different name, replace
+       "facts" with the name shown in Finder.
+
+    3. The AI should start loading in the Terminal window.
+
+
+================================================================
+  ISSUE 2: "Permission denied" error in Terminal
+================================================================
+
+  CAUSE: The llama-cli binary does not have execute permission.
+  The launch script normally fixes this automatically, but
+  sometimes macOS blocks it.
+
+  FIX:
+
+    1. Open Terminal.
+    2. Run these two commands one at a time, pressing Enter
+       after each:
+
+       xattr -r -d com.apple.quarantine /Volumes/facts/.system
+       chmod +x /Volumes/facts/.system/llama-cli
+
+    3. Now try launching again:
+
+       bash /Volumes/facts/MacLaunch.command
+
+  WHAT THESE COMMANDS DO:
+    - The first command removes Apple's quarantine flag from
+      all files in the .system folder.
+    - The second command grants execute permission to the
+      AI engine binary.
+
+
+================================================================
+  ISSUE 3: "Unidentified developer" or Gatekeeper warning
+================================================================
+
+  CAUSE: macOS Gatekeeper blocks software that is not signed
+  with an Apple Developer certificate. llama.cpp is open-source
+  software and is not signed.
+
+  FIX:
+
+    The launch script automatically handles this with the
+    xattr quarantine removal command. If it still appears:
+
+    1. Open System Settings > Privacy & Security.
+    2. Look for a message about the blocked application.
+    3. Click "Allow Anyway" or "Open Anyway."
+    4. Re-run the launcher.
+
+  ADVANCED FIX (if the above does not work):
+
+    1. Open Terminal.
+    2. Run:
+
+       sudo spctl --master-disable
+
+       (Enter your Mac password when prompted.)
+
+    3. This temporarily disables Gatekeeper. Re-run the
+       launcher.
+    4. After the AI loads successfully, you can re-enable
+       Gatekeeper:
+
+       sudo spctl --master-enable
+
+    NOTE: You should only need to do this once. After the
+    first successful launch, macOS remembers the permission.
+
+
+================================================================
+  ISSUE 4: "ERROR: No models found!"
+================================================================
+
+  CAUSE: The AI model files are missing from the .system
+  folder, or the .system folder itself is missing.
+
+  FIX:
+
+    1. Open Finder and navigate to the flash drive.
+    2. Press Cmd+Shift+. (period) to show hidden files.
+    3. You should see a folder called .system.
+    4. Open it. You should see these files:
+       - llama-cli
+       - Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf
+       - Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf
+
+    If any of these files are missing, the drive may be
+    corrupted. Contact us for a replacement (see bottom).
+
+
+================================================================
+  ISSUE 5: The AI loads but is extremely slow
+================================================================
+
+  CAUSE A -- Not enough RAM:
+    The AI requires at least 8 GB of RAM. If your Mac is
+    using most of its RAM for other applications, performance
+    will suffer.
+
+    HOW TO CHECK YOUR RAM:
+    1. Click the Apple menu > About This Mac.
+    2. Look for "Memory" -- it shows your total RAM.
+    3. For real-time usage: open Activity Monitor (search in
+       Spotlight), click the "Memory" tab, and look at
+       "Memory Pressure" at the bottom.
+       - Green = good, you have enough RAM available.
+       - Yellow = close other apps before running facts.
+       - Red = not enough RAM. Close heavy apps (browsers,
+         video editors, etc.) and try again.
+
+    TIP: Close all other applications before launching facts.
+    Web browsers are especially RAM-hungry. Quit Chrome,
+    Safari, or Firefox before launching.
+
+  CAUSE B -- USB port or adapter issue:
+    If the drive is connected through a USB hub, dongle, or
+    adapter that does not support high-speed data transfer,
+    the model will load very slowly or may fail entirely.
+
+    FIX: Plug the drive directly into a USB port on the Mac.
+    If your Mac only has USB-C ports and you need an adapter,
+    make sure it explicitly supports USB 3.0 data transfer
+    (not just charging). Apple's own USB-C to USB adapter
+    works reliably. Cheap no-brand adapters often do not.
+
+  CAUSE C -- USB 2.0 port:
+    USB 2.0 ports transfer data much more slowly than USB 3.0.
+    The initial model load may take several minutes on USB 2.0.
+    This is normal. Once loaded into RAM, the AI runs at full
+    speed regardless of the USB connection.
+
+    HOW TO CHECK:
+    1. Click the Apple menu > About This Mac > System Report.
+    2. Click USB in the sidebar.
+    3. Look for your drive. It should say "Up to 5 Gb/s"
+       (USB 3.0) rather than "Up to 480 Mb/s" (USB 2.0).
+
+
+================================================================
+  ISSUE 6: The AI crashes or freezes mid-conversation
+================================================================
+
+  CAUSE A -- RAM ran out:
+    If the conversation gets very long, the AI's context window
+    fills up and may exceed available RAM.
+
+    FIX: Exit (Ctrl+C) and relaunch. The Nuclear Wipe clears
+    the context. Start a fresh conversation.
+
+  CAUSE B -- Ghost process:
+    A previous llama-cli process may still be running in the
+    background, consuming resources.
+
+    FIX:
+    1. Open Terminal.
+    2. Run:
+
+       killall llama-cli
+
+    3. Relaunch MacLaunch.command.
+
+  CAUSE C -- Drive was disconnected:
+    If the USB drive loses connection (bumped, loose port,
+    adapter issue), the AI will crash because it can no longer
+    read the model file.
+
+    FIX: Make sure the drive is firmly seated in the port.
+    Avoid using the computer in a way that could jostle the
+    connection. Relaunch after reconnecting.
+
+
+================================================================
+  ISSUE 7: "Killed" or "Segmentation fault" error
+================================================================
+
+  CAUSE: macOS terminated the process because it ran out of
+  memory, or the binary is incompatible with your system.
+
+  FIX (Memory):
+    1. Close all other applications.
+    2. Open Activity Monitor > Memory tab.
+    3. If Memory Pressure is red, you do not have enough
+       available RAM. Quit heavy applications and try again.
+    4. Machines with only 8 GB of RAM should close everything
+       except Terminal before launching.
+
+  FIX (Compatibility):
+    The llama-cli binary on this drive is compiled for Apple
+    Silicon (M1/M2/M3/M4). It will NOT run on older Intel
+    Macs.
+
+    HOW TO CHECK:
+    1. Click the Apple menu > About This Mac.
+    2. Look for "Chip" -- it should say M1, M2, M3, M4, or
+       similar. If it says "Intel," this drive is not
+       compatible with your Mac.
+
+
+================================================================
+  ISSUE 8: The AI refuses to answer or gives censored responses
+================================================================
+
+  CAUSE: Occasionally the model may fall into a "moralizing"
+  pattern, especially during long conversations where context
+  from earlier prompts influences behavior.
+
+  FIX:
+    1. Exit the session (Ctrl+C or type /bye).
+    2. Relaunch MacLaunch.command.
+    3. The Nuclear Wipe clears all context. The AI starts
+       fresh with no memory of the previous conversation.
+    4. Rephrase your question. The abliterated model is
+       designed to answer directly, but rephrasing can help
+       if a particular wording triggers legacy guardrails.
+
+
+================================================================
+  ISSUE 9: Terminal text is garbled or hard to read
+================================================================
+
+  CAUSE: The default Terminal font or window size may not
+  display the AI's output cleanly.
+
+  FIX:
+    1. In Terminal, go to Terminal > Settings (or Preferences).
+    2. Under the Profiles tab, select your active profile.
+    3. Set the font to Menlo or SF Mono, size 13 or 14.
+    4. Resize the Terminal window wider if text is wrapping
+       in awkward places.
+
+
+================================================================
+  ISSUE 10: Drive does not appear in Finder
+================================================================
+
+  CAUSE A -- Drive is not mounted:
+    1. Open Disk Utility (search in Spotlight).
+    2. Look for the drive in the sidebar (it may appear as
+       "SanDisk" or similar).
+    3. Select it and click "Mount."
+
+  CAUSE B -- Adapter issue:
+    If using a USB-C to USB-A adapter, try a different adapter
+    or a different port. Some cheap adapters do not pass data.
+
+  CAUSE C -- Drive is damaged:
+    If the drive does not appear in Disk Utility at all, the
+    hardware may be defective. Contact us for a replacement.
+
+
+================================================================
+  STILL NOT WORKING?
+================================================================
+
+  If none of the above solved your problem, reach out to us.
+  We are real people and we will help you.
+
+  Before contacting us, please note:
+    - Your Mac model (e.g., MacBook Air M2)
+    - Your macOS version (e.g., macOS 15 Sequoia)
+    - Your RAM (e.g., 8 GB or 16 GB)
+    - The exact error message you see (a screenshot helps)
+
+  Email:     support@opensourceeverything.io
+  Instagram: @open.source.everything
+  Website:   opensourceeverything.io
+
+  We typically respond within 24 hours.
+
+
+================================================================
+          For the people. By the people.
+               opensourceeverything.io
+================================================================
