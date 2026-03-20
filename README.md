@@ -37,8 +37,8 @@ These go in the `.system/` folder:
 | File | Size | Source |
 |------|------|--------|
 | `llamafile.exe` | ~294MB | [Mozilla llamafile releases](https://github.com/Mozilla-Ocho/llamafile/releases) |
-| `Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf` | ~4.0GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
-| `Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf` | ~2.3GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
+| `Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf` | ~4.0GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/tree/main/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
+| `Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf` | ~2.3GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/tree/main/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
 
 **Mac users** also need the llama.cpp ARM64 binaries (included in the repo under `.system/`):
 - Download from [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases) → `llama-<version>-bin-macos-arm64.tar.gz`
