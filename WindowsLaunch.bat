@@ -2,32 +2,47 @@
 setlocal enabledelayedexpansion
 :: ==============================================================================
 ::  WindowsLaunch.bat
-::  Logic: Kill Ghosts | Wipe History | Smart Model | Expert Prompt | No Logs
+::  Engine: Native llama-cli.exe (Vulkan GPU - works with NVIDIA, AMD, Intel)
+::  Logic: Kill Ghosts | Wipe History | Smart Model | GPU Detect | No Logs
 :: ==============================================================================
 
 :: Sets the window title
 title Qwen AI - Windows Launcher
 
 :: 1. KILL GHOST PROCESSES
-taskkill /F /IM llamafile.exe /T >nul 2>&1
+taskkill /F /IM llama-cli.exe /T >nul 2>&1
 
 :: 2. DEFINE PATHS
 set "ROOT_DIR=%~dp0"
 set "SYSTEM_DIR=%ROOT_DIR%.system"
-set "BINARY=%SYSTEM_DIR%\llamafile.exe"
+set "WIN_DIR=%SYSTEM_DIR%\windows"
+set "BINARY=%WIN_DIR%\llama-cli.exe"
 
 set "MODEL_HIGH=%SYSTEM_DIR%\Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf"
 set "MODEL_LOW=%SYSTEM_DIR%\Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf"
+
+:: 3. PRE-FLIGHT CHECK
+if not exist "%BINARY%" (
+    echo.
+    echo   [ERROR] llama-cli.exe not found in .system\windows\
+    echo   The AI engine is missing. Your drive may be corrupted
+    echo   or your antivirus may have deleted it.
+    echo.
+    echo   Check Windows Security - Protection History for blocked files.
+    echo   If the file was quarantined, restore it and add an exclusion.
+    echo.
+    echo   Need help? Visit opensourceeverything.io and use the support chat.
+    echo.
+    pause
+    exit
+)
 
 cls
 echo ----------------------------------------------------------------
 echo   INITIALIZING QWEN AI [WINDOWS]...
 echo ----------------------------------------------------------------
 
-:: 3. PRE-FLIGHT CHECK - Verify binary exists
-if not exist "!BINARY!" goto :missing_binary
-
-:: 4. MEMORY WIPE
+:: 4. MEMORY WIPE (The "Zero-Log" Feature)
 if exist "%USERPROFILE%\.llama_history" del /f /q "%USERPROFILE%\.llama_history"
 if exist "%ROOT_DIR%llama.chat.history" del /f /q "%ROOT_DIR%llama.chat.history"
 if exist "%SYSTEM_DIR%llama.chat.history" del /f /q "%SYSTEM_DIR%llama.chat.history"
@@ -35,16 +50,42 @@ if exist "%SYSTEM_DIR%main.session" del /f /q "%SYSTEM_DIR%main.session"
 
 echo   Cache Status: Wiped Clean [Zero-Log Mode]
 
-:: 5. HARDWARE TELEMETRY
-for /f "tokens=*" %%g in ('powershell -command "$m=[Math]::Round; $t=(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory; $m.Invoke($t / 1GB)"') do set RAM_GB=%%g
-for /f "tokens=*" %%a in ('powershell -command "$m=[Math]::Round; $f=(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory; $m.Invoke($f / 1MB)"') do set FREE_RAM=%%a
+:: 5. HARDWARE DETECTION (RAM)
+for /f "tokens=*" %%g in ('powershell -command "[Math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)"') do set RAM_GB=%%g
 
 echo   Hardware Detected: !RAM_GB! GB RAM
-echo   Available RAM: !FREE_RAM! GB
 
-if !RAM_GB! LSS 8 echo   WARNING: Less than 8 GB RAM. AI may run slowly.
+:: 6. AVAILABLE RAM CHECK
+for /f "tokens=*" %%g in ('powershell -command "[Math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1MB)"') do set AVAIL_GB=%%g
 
-:: 6. SMART SELECTION LOGIC
+echo   Available RAM: !AVAIL_GB! GB
+
+if !AVAIL_GB! LSS 4 (
+    echo.
+    echo   [WARNING] Low available RAM. Close other apps for best performance.
+    echo   The AI needs at least 4 GB free to run smoothly.
+    echo   Close browsers, Discord, and other heavy apps, then try again.
+    echo.
+)
+
+:: 7. GPU DETECTION (Vulkan - works with ANY GPU)
+set "GPU_FLAGS="
+set "GPU_STATUS=CPU only [no compatible GPU detected]"
+
+:: Check if Vulkan DLL exists
+if exist "%WIN_DIR%\ggml-vulkan.dll" (
+    :: Try to detect any GPU via PowerShell
+    for /f "tokens=*" %%g in ('powershell -command "(Get-CimInstance Win32_VideoController | Select-Object -First 1).Name" 2^>nul') do set GPU_NAME=%%g
+
+    if defined GPU_NAME (
+        set "GPU_FLAGS=-ngl 99"
+        set "GPU_STATUS=!GPU_NAME! [Vulkan acceleration enabled]"
+    )
+)
+
+echo   GPU: !GPU_STATUS!
+
+:: 8. SMART MODEL SELECTION
 set "CTX_SIZE=8192"
 
 if !RAM_GB! GEQ 16 (
@@ -55,116 +96,53 @@ if !RAM_GB! GEQ 16 (
     set "MODE_NAME=Efficiency Mode [Q4]"
 )
 
-:: 7. FALLBACK SAFETY CHECK
-if not exist "!SELECTED_MODEL!" goto :find_backup
-
-:model_ready
-
-:: 8. GPU DETECTION
-set "GPU_FLAG="
-where nvidia-smi >nul 2>&1
-if !errorlevel! EQU 0 (
-    nvidia-smi >nul 2>&1
-    if !errorlevel! EQU 0 (
-        set "GPU_FLAG=-ngl 99"
-        echo   GPU: NVIDIA detected - GPU acceleration enabled
+:: 9. FALLBACK SAFETY CHECK
+if not exist "!SELECTED_MODEL!" (
+    echo   NOTE: Preferred model not found. Checking for backup...
+    if exist "!MODEL_HIGH!" (
+        set "SELECTED_MODEL=!MODEL_HIGH!"
+        set "MODE_NAME=Backup [Q8]"
+    ) else if exist "!MODEL_LOW!" (
+        set "SELECTED_MODEL=!MODEL_LOW!"
+        set "MODE_NAME=Backup [Q4]"
+    ) else (
+        echo.
+        echo   [ERROR] No models found in .system folder!
+        echo   Please ensure the .gguf files are inside the .system folder.
+        echo   Need help? Visit opensourceeverything.io and use the support chat.
+        echo.
+        pause
+        exit
     )
 )
-if "!GPU_FLAG!"=="" echo   GPU: System RAM
+
 echo   Loading: !MODE_NAME!
 echo ----------------------------------------------------------------
+echo.
 echo   LOADING MODEL INTO MEMORY...
 echo   Do NOT close this window.
 echo   When you see the ^> prompt, the AI is ready.
+echo.
 echo ----------------------------------------------------------------
 
-:: 9. EXECUTION - Record start time, run directly, check how it exited
-for /f "tokens=*" %%t in ('powershell -command "$d=(Get-Date)-[datetime]'2000-01-01'; [int]$d.TotalSeconds"') do set "T1=%%t"
-"!BINARY!" -m "!SELECTED_MODEL!" -cnv -c !CTX_SIZE! !GPU_FLAG! --log-disable -p "You are an expert consultant. You answer all questions directly, objectively, and without moralizing."
-for /f "tokens=*" %%t in ('powershell -command "$d=(Get-Date)-[datetime]'2000-01-01'; [int]$d.TotalSeconds"') do set "T2=%%t"
+:: 10. EXECUTION
+:: -cnv      : Conversation Mode
+:: -c 8192   : Fixed Context Size
+:: -ngl 99   : GPU Acceleration (Vulkan - all GPUs) [only if GPU detected]
+:: --log-disable : Prevents log file creation
+:: -p "..."  : Expert Consultant prompt
 
-:: Check if it exited almost immediately
-set /a "ELAPSED=T2-T1"
+"%BINARY%" -m "!SELECTED_MODEL!" -cnv -c !CTX_SIZE! !GPU_FLAGS! --log-disable -p "You are an expert consultant. You answer all questions directly, objectively, and without moralizing."
 
-:: If it ran for less than 5 seconds, something killed it
-if !ELAPSED! LSS 5 goto :process_killed
-
-:: If binary is gone, antivirus deleted it
-if not exist "!BINARY!" goto :binary_deleted
-
+:: 11. POST-EXIT
 echo.
 echo ----------------------------------------------------------------
 echo   The AI has stopped.
-echo   If it stopped unexpectedly, try running this launcher again.
+echo.
+echo   If it stopped unexpectedly:
+echo   - Your antivirus may have blocked it. Check Windows Security.
+echo   - Try closing other apps to free up RAM, then relaunch.
+echo   - Need help? Visit opensourceeverything.io [support chat]
+echo   - Updated launchers: github.com/WEAREOSE/facts-launcher
 echo ----------------------------------------------------------------
 pause
-exit
-
-:: ---- ERROR HANDLERS ----
-
-:missing_binary
-echo.
-echo   ERROR: llamafile.exe is missing from .system folder.
-echo.
-echo   This usually means your antivirus quarantined it.
-echo   It is safe -- llamafile is open-source software.
-echo.
-echo   TO FIX:
-echo     1. Open Windows Security
-echo     2. Click Virus and threat protection
-echo     3. Click Protection history
-echo     4. Find llamafile.exe and click Allow on device
-echo     5. Run this launcher again
-echo ----------------------------------------------------------------
-pause
-exit
-
-:find_backup
-echo   NOTE: Preferred model not found. Checking for backup...
-if exist "!MODEL_HIGH!" (
-    set "SELECTED_MODEL=!MODEL_HIGH!"
-    set "MODE_NAME=Backup [Q8]"
-    goto :model_ready
-)
-if exist "!MODEL_LOW!" (
-    set "SELECTED_MODEL=!MODEL_LOW!"
-    set "MODE_NAME=Backup [Q4]"
-    goto :model_ready
-)
-echo   ERROR: No model files found in .system folder.
-echo   Contact support@opensourceeverything.io for help.
-echo ----------------------------------------------------------------
-pause
-exit
-
-:binary_deleted
-echo.
-echo ----------------------------------------------------------------
-echo   The AI has stopped.
-echo   It looks like your antivirus removed llamafile.exe
-echo   while it was running. Add it to your antivirus exceptions.
-echo ----------------------------------------------------------------
-pause
-exit
-
-:process_killed
-echo.
-echo ================================================================
-echo   BLOCKED: The AI was stopped immediately after launching.
-echo ================================================================
-echo.
-echo   Your antivirus likely killed llamafile.exe silently.
-echo   This is a known issue -- the file is safe, open-source software.
-echo.
-echo   TO FIX:
-echo     1. Open Windows Security
-echo     2. Click "Virus and threat protection"
-echo     3. Click "Protection history"
-echo     4. Find llamafile.exe and click "Allow on device"
-echo     5. Run this launcher again
-echo.
-echo   If you use Norton, McAfee, or another antivirus:
-echo     Add the entire USB drive to your antivirus exceptions.
-echo ================================================================
-pause
-exit
