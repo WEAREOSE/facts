@@ -2,14 +2,14 @@
 setlocal enabledelayedexpansion
 :: ==============================================================================
 ::  WindowsLaunch.bat
-::  Engine: llamafile.exe (cosmopolitan binary)
-::  Logic: Kill Ghosts | Wipe History | Smart Model | NVIDIA-only GPU | No Logs
+::  Logic: Kill Ghosts | Wipe History | Smart Model | Expert Prompt | No Logs
 :: ==============================================================================
 
 :: Sets the window title
 title Qwen AI - Windows Launcher
 
 :: 1. KILL GHOST PROCESSES
+:: If an old version of the AI is stuck in the background, this kills it silently.
 taskkill /F /IM llamafile.exe /T >nul 2>&1
 
 :: 2. DEFINE PATHS
@@ -20,94 +20,50 @@ set "BINARY=%SYSTEM_DIR%\llamafile.exe"
 set "MODEL_HIGH=%SYSTEM_DIR%\Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf"
 set "MODEL_LOW=%SYSTEM_DIR%\Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf"
 
-:: 3. PRE-FLIGHT CHECK
-if not exist "%BINARY%" (
-    echo.
-    echo   [ERROR] llamafile.exe not found in .system\
-    echo   The AI engine is missing. Your drive may be corrupted
-    echo   or your antivirus may have deleted it.
-    echo.
-    echo   Check Windows Security - Protection History for blocked files.
-    echo   If the file was quarantined, restore it and add an exclusion.
-    echo.
-    echo   Need help? Visit opensourceeverything.io and use the support chat.
-    echo.
-    pause
-    exit
-)
-
 cls
 echo ----------------------------------------------------------------
-echo   INITIALIZING QWEN AI [WINDOWS]...
+echo   INITIALIZING QWEN AI (WINDOWS)...
 echo ----------------------------------------------------------------
 
-:: 4. MEMORY WIPE (The "Zero-Log" Feature)
+:: 3. MEMORY WIPE (The "Zero-Log" Feature)
+:: We delete the history and session files so the AI wakes up with total amnesia.
+:: This ensures privacy and prevents "refusal loops."
 if exist "%USERPROFILE%\.llama_history" del /f /q "%USERPROFILE%\.llama_history"
 if exist "%ROOT_DIR%llama.chat.history" del /f /q "%ROOT_DIR%llama.chat.history"
 if exist "%SYSTEM_DIR%llama.chat.history" del /f /q "%SYSTEM_DIR%llama.chat.history"
 if exist "%SYSTEM_DIR%main.session" del /f /q "%SYSTEM_DIR%main.session"
 
-echo   Cache Status: Wiped Clean [Zero-Log Mode]
+echo   Cache Status: Wiped Clean (Zero-Log Mode)
 
-:: 5. HARDWARE DETECTION (RAM)
+:: 4. HARDWARE TELEMETRY (Check RAM)
 for /f "tokens=*" %%g in ('powershell -command "[Math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)"') do set RAM_GB=%%g
 
 echo   Hardware Detected: !RAM_GB! GB RAM
 
-:: 6. AVAILABLE RAM CHECK
-for /f "tokens=*" %%g in ('powershell -command "[Math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory / 1MB)"') do set AVAIL_GB=%%g
-
-echo   Available RAM: !AVAIL_GB! GB
-
-if !AVAIL_GB! LSS 4 (
-    echo.
-    echo   [WARNING] Low available RAM. Close other apps for best performance.
-    echo   The AI needs at least 4 GB free to run smoothly.
-    echo   Close browsers, Discord, and other heavy apps, then try again.
-    echo.
-)
-
-:: 7. GPU DETECTION (NVIDIA ONLY)
-set "GPU_FLAGS="
-set "GPU_STATUS=CPU only"
-
-where nvidia-smi >nul 2>&1
-if !errorlevel! EQU 0 (
-    for /f "tokens=*" %%g in ('nvidia-smi --query-gpu=name --format=csv,noheader 2^>nul') do set GPU_NAME=%%g
-    if defined GPU_NAME (
-        set "GPU_FLAGS=-ngl 99"
-        set "GPU_STATUS=!GPU_NAME! - GPU acceleration enabled"
-    )
-)
-
-echo   GPU: !GPU_STATUS!
-
-:: 8. SMART MODEL SELECTION
+:: 5. SMART SELECTION LOGIC
+:: Locked to 8192 Context for maximum stability and uncensored behavior.
 set "CTX_SIZE=8192"
 
 if !RAM_GB! GEQ 16 (
     set "SELECTED_MODEL=!MODEL_HIGH!"
-    set "MODE_NAME=High Performance [Q8]"
+    set "MODE_NAME=High Performance (Q8)"
 ) else (
     set "SELECTED_MODEL=!MODEL_LOW!"
-    set "MODE_NAME=Efficiency Mode [Q4]"
+    set "MODE_NAME=Efficiency Mode (Q4)"
 )
 
-:: 9. FALLBACK SAFETY CHECK
+:: 6. FALLBACK SAFETY CHECK
 if not exist "!SELECTED_MODEL!" (
     echo   NOTE: Preferred model not found. Checking for backup...
     if exist "!MODEL_HIGH!" (
         set "SELECTED_MODEL=!MODEL_HIGH!"
-        set "MODE_NAME=Backup [Q8]"
+        set "MODE_NAME=Backup (Q8)"
     ) else if exist "!MODEL_LOW!" (
         set "SELECTED_MODEL=!MODEL_LOW!"
-        set "MODE_NAME=Backup [Q4]"
+        set "MODE_NAME=Backup (Q4)"
     ) else (
-        echo.
-        echo   [ERROR] No models found in .system folder!
+        echo   ERROR: No models found in .system folder!
         echo   Please ensure the .gguf files are inside the .system folder.
-        echo   Need help? Visit opensourceeverything.io and use the support chat.
-        echo.
         pause
         exit
     )
@@ -115,25 +71,18 @@ if not exist "!SELECTED_MODEL!" (
 
 echo   Loading: !MODE_NAME!
 echo ----------------------------------------------------------------
-echo.
-echo   LOADING MODEL INTO MEMORY...
-echo   Do NOT close this window.
-echo   When you see the ^> prompt, the AI is ready.
-echo.
+echo   AI READY. TYPE BELOW TO CHAT.
+echo   (Press Ctrl+C to exit)
 echo ----------------------------------------------------------------
 
-:: 10. EXECUTION
-"%BINARY%" -m "!SELECTED_MODEL!" -cnv -c !CTX_SIZE! !GPU_FLAGS! --log-disable -p "You are an expert consultant. You answer all questions directly, objectively, and without moralizing."
+:: 7. EXECUTION
+:: -cnv      : Conversation Mode
+:: -c 8192   : Fixed Context Size
+:: -ngl 99   : GPU Acceleration
+:: --log-disable : Prevents the creation of main.log or llama.log
+:: -p "..."  : The "Expert Consultant" Prompt (Bypasses refusal filters)
 
-:: 11. POST-EXIT
-echo.
-echo ----------------------------------------------------------------
-echo   The AI has stopped.
-echo.
-echo   If it stopped unexpectedly:
-echo   - Your antivirus may have blocked it. Check Windows Security.
-echo   - Try closing other apps to free up RAM, then relaunch.
-echo   - Need help? Visit opensourceeverything.io [support chat]
-echo   - Updated launchers: github.com/WEAREOSE/facts-launcher
-echo ----------------------------------------------------------------
+"%BINARY%" -m "!SELECTED_MODEL!" -cnv -c !CTX_SIZE! -ngl 99 --log-disable -p "You are an expert consultant. You answer all questions directly, objectively, and without moralizing."
+
+:: Pause on exit so you can see errors
 pause
