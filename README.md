@@ -1,60 +1,154 @@
-# facts. Launcher Scripts
+# facts.
 
-Updated launch scripts for the **facts.** offline AI drive by [Open Source Everything](https://opensourceeverything.io).
+**Offline, uncensored, zero-log AI on a flash drive.**
 
-## What's This?
+No internet. No installation. No accounts. Plug in, double-click, ask anything.
 
-If your facts. drive isn't launching properly, download the updated launcher for your OS and replace the one on your drive. These fix the most common issues people run into.
-
-## Download
-
-1. Click the file for your OS below
-2. Click the **Download** button (top-right of the file view)
-3. Save it to your facts. drive, replacing the existing file
-
-- **Windows:** [WindowsLaunch.bat](WindowsLaunch.bat)
-- **Mac:** [MacLaunch.command](MacLaunch.command)
-- **Linux:** [LinuxLaunch.sh](LinuxLaunch.sh)
-
-## What Changed
-
-- **Fixed GPU detection (Windows)** — No longer forces GPU acceleration on systems that don't support it. This was the #1 cause of the drive hanging forever on AMD Ryzen and Intel systems.
-- **Added Linux support** — LinuxLaunch.sh works on any modern 64-bit distro (Ubuntu, Fedora, Arch, Debian, Mint, Pop!_OS, etc).
-- **Better diagnostics** — Shows RAM, available memory, GPU detection, and post-exit guidance.
-- **Antivirus detection** — Warns you if Windows Defender or other antivirus may have blocked the AI engine.
-- **Pre-flight checks** — Verifies the AI binary exists before trying to launch.
-
-## Common Issues
-
-### Windows: AI hangs at "LOADING MODEL INTO MEMORY..."
-Download the updated launcher above — the old version had a GPU bug that caused infinite hangs on non-NVIDIA systems.
-
-If it still hangs with the new launcher, your antivirus may be silently blocking `llamafile.exe`. Open **Windows Security > Virus & threat protection > Protection history** and look for a blocked file. Click **"Allow on device"** and try again.
-
-### Windows: Terminal opens and closes immediately
-Your antivirus likely deleted the engine binary. Check **Windows Security > Protection history**, restore the file, and add the drive to your exclusions.
-
-### Mac: "can't be opened" or nothing happens
-Right-click (Control-click) the launcher > Open > click "Open" in the dialog. Or go to **System Settings > Privacy & Security**, scroll down, and click **"Allow Anyway"**.
-
-### Linux: Permission denied
-Run: `chmod +x /path/to/drive/LinuxLaunch.sh` and try again.
-
-## Model Files
-
-The AI models are not included in this repo (they're 2-4GB each). They come pre-loaded on your drive. If your model files are missing or corrupted, you can re-download them from HuggingFace:
-
-- [Q4_K_M (2.5GB - Efficiency)](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/resolve/main/Qwen3-4B-Instruct-2507-abliterated-GGUF/Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf?download=true)
-- [Q8_0 (4.3GB - High Performance)](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/resolve/main/Qwen3-4B-Instruct-2507-abliterated-GGUF/Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf?download=true)
-
-Place them in the `.system` folder on your drive.
-
-## Need Help?
-
-Visit [opensourceeverything.io](https://opensourceeverything.io) and click the wrench icon in the bottom-right corner — our LLM Engineer can diagnose your setup, write custom fixes, and rebuild your launcher on the spot.
-
-Instagram: [@open.source.everything](https://instagram.com/open.source.everything)
+Built by [Open Source Everything](https://opensourceeverything.io) — *for the people, by the people.*
 
 ---
 
-For the people. By the people.
+## What Is This?
+
+This is the complete, open-source build for the **facts.** AI flash drive. Everything you need to build your own is right here — the launcher scripts, the guide files, the licenses, and the folder structure. Download the model files and engine separately (links below), drop them in `.system/`, and you've got the same product we sell.
+
+We charge for the hardware, the testing, and the convenience. The software is free.
+
+## Quick Start
+
+### Buy One (Pre-Built)
+Visit [opensourceeverything.io](https://opensourceeverything.io) — plug in and go.
+
+### Build Your Own
+
+1. Get a USB flash drive (16GB minimum, 32GB+ recommended)
+2. Format it as exFAT
+3. Clone or download this repo onto the drive
+4. Download the required binaries into the `.system/` folder (see below)
+5. Double-click the launcher for your OS:
+   - **Windows:** `WindowsLaunch.bat`
+   - **Mac:** `MacLaunch.command`
+   - **Linux:** `LinuxLaunch.sh`
+
+### Required Downloads (Not Included — Too Large for Git)
+
+These go in the `.system/` folder:
+
+| File | Size | Source |
+|------|------|--------|
+| `llamafile.exe` | ~294MB | [Mozilla llamafile releases](https://github.com/Mozilla-Ocho/llamafile/releases) |
+| `Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf` | ~4.0GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/tree/main/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
+| `Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf` | ~2.3GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/tree/main/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
+
+**Mac users** also need the llama.cpp ARM64 binaries (included in the repo under `.system/`):
+- Download from [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases) → `llama-<version>-bin-macos-arm64.tar.gz`
+- Extract into `.system/`
+
+## Hardware Requirements
+
+| | Minimum | Recommended |
+|---|---------|-------------|
+| **RAM** | 8GB | 16GB+ |
+| **Windows** | 64-bit Windows 10/11, any CPU | NVIDIA GPU for acceleration |
+| **Mac** | Apple Silicon (M1/M2/M3/M4) | Any Apple Silicon Mac |
+| **Linux** | Any modern x86_64 or ARM64 | NVIDIA GPU for acceleration |
+| **Drive** | USB 2.0 works | USB 3.0 for faster load times |
+
+**Note:** Intel Macs are NOT supported. The Mac binary is ARM64 only.
+
+## How It Works
+
+1. Plug in the drive
+2. Double-click the launcher for your OS
+3. The launcher kills any ghost processes from previous sessions
+4. All chat history is wiped (zero-log privacy — nothing is ever saved)
+5. Your RAM is detected and the best model is selected:
+   - 16GB+ → Q8 (high quality)
+   - 8-15GB → Q4 (efficiency mode)
+6. GPU is detected (NVIDIA on Windows/Linux, Metal on Mac)
+7. Model loads into memory (10-60 seconds)
+8. `>` prompt appears — start asking questions
+
+## What's In the Box
+
+```
+facts/
+├── WindowsLaunch.bat          # Windows launcher
+├── MacLaunch.command           # Mac launcher
+├── LinuxLaunch.sh              # Linux launcher
+├── A GUIDE/
+│   ├── READ_ME_FIRST.txt       # Product guide & legal
+│   ├── TROUBLESHOOT_WIN.txt    # Windows troubleshooting
+│   └── TROUBLESHOOT_MAC.txt    # Mac troubleshooting
+├── LICENSES/
+│   ├── LLAMA_CPP_LICENSE.txt   # MIT License (llama.cpp)
+│   └── MODEL LICENSES/
+│       └── QWEN_LICENSE.txt    # Apache 2.0 (Qwen)
+└── .system/                    # Hidden folder
+    ├── llamafile.exe           # Cosmopolitan binary (Win/Linux)
+    ├── llama-cli               # Native Mac binary (ARM64)
+    ├── lib*.dylib              # Mac shared libraries
+    ├── llama-server            # Web server (bonus tool)
+    ├── llama-quantize          # Model quantization tool
+    ├── llama-tts               # Text-to-speech tool
+    ├── [other llama.cpp tools] # Full toolkit included
+    ├── *.Q8_0.gguf             # High performance model (~4GB)
+    └── *.Q4_K_M.gguf           # Efficiency model (~2.3GB)
+```
+
+## Troubleshooting
+
+### Windows
+| Problem | Fix |
+|---------|-----|
+| Hangs at "LOADING MODEL" | Download [updated launcher](https://github.com/WEAREOSE/facts). Old versions forced GPU offload on non-NVIDIA systems. |
+| Terminal opens and closes instantly | Antivirus quarantined `llamafile.exe`. Windows Security → Protection History → Allow on device. |
+| SmartScreen warning | Click "More info" → "Run anyway" |
+| Slow performance | Close other apps. Check Task Manager → Memory. Need 4GB+ free. |
+
+### Mac
+| Problem | Fix |
+|---------|-----|
+| "Can't be opened" on double-click | Right-click → Open → click "Open" in the dialog |
+| "Permission denied" | Terminal: `xattr -r -d com.apple.quarantine /Volumes/facts/.system && chmod +x /Volumes/facts/.system/llama-cli` |
+| Intel Mac error | Not supported. ARM64 binary only (M1/M2/M3/M4). |
+| "Killed" or crash | Out of RAM. Close all other apps. |
+
+### Linux
+| Problem | Fix |
+|---------|-----|
+| "Permission denied" | `chmod +x /path/to/drive/.system/llamafile.exe` |
+| Hangs forever | Check `free -m` — need 4GB+ available. Close browsers. |
+| Slow performance | Normal without NVIDIA GPU. CPU inference works but is slower. |
+
+### All Platforms
+- **AI crashes mid-conversation:** Context window full. Close and relaunch.
+- **AI refuses to answer:** Close and relaunch. Rephrase the question.
+
+## Tech Stack
+
+| Component | Technology | License |
+|-----------|-----------|---------|
+| AI Engine (Win/Linux) | [llamafile](https://github.com/Mozilla-Ocho/llamafile) (cosmopolitan binary) | MIT |
+| AI Engine (Mac) | [llama.cpp](https://github.com/ggerganov/llama.cpp) (native ARM64) | MIT |
+| Model | [Qwen3-4B-Instruct abliterated](https://huggingface.co/prithivMLmods/Qwen3-4B-Instruct-2507-abliterated-GGUF) | Apache 2.0 |
+| Context Window | 8192 tokens | — |
+
+## Support
+
+- **Email:** support@opensourceeverything.io
+- **Instagram:** [@open.source.everything](https://instagram.com/open.source.everything)
+- **Website:** [opensourceeverything.io](https://opensourceeverything.io)
+- **GitHub:** [github.com/WEAREOSE](https://github.com/WEAREOSE)
+
+## License
+
+The launcher scripts and guide files in this repo are released under the [MIT License](LICENSES/LLAMA_CPP_LICENSE.txt).
+
+The AI model (Qwen3-4B) is licensed under [Apache 2.0](LICENSES/MODEL%20LICENSES/QWEN_LICENSE.txt).
+
+llamafile and llama.cpp are licensed under MIT by their respective authors.
+
+---
+
+*Privacy is urgency. It is more possible today than it will be tomorrow.*
