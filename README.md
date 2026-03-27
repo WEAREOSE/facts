@@ -16,30 +16,26 @@ If your facts. drive isn't launching properly, download the updated launcher for
 - **Mac:** [MacLaunch.command](MacLaunch.command)
 - **Linux:** [LinuxLaunch.sh](LinuxLaunch.sh)
 
-## What Changed (v2 - March 2026)
+## What Changed
 
-- **Switched Windows engine from llamafile to native llama-cli.exe** — llamafile is a cosmopolitan binary that some antivirus software silently blocks. The new native build eliminates this issue entirely.
-- **Vulkan GPU acceleration (Windows)** — Works with ALL GPUs (NVIDIA, AMD, Intel). No more CUDA-only problems. No more hanging on AMD Ryzen systems.
-- **Added Linux support** — LinuxLaunch.sh works on any modern 64-bit distro.
+- **Fixed GPU detection (Windows)** — No longer forces GPU acceleration on systems that don't support it. This was the #1 cause of the drive hanging forever on AMD Ryzen and Intel systems.
+- **Added Linux support** — LinuxLaunch.sh works on any modern 64-bit distro (Ubuntu, Fedora, Arch, Debian, Mint, Pop!_OS, etc).
 - **Better diagnostics** — Shows RAM, available memory, GPU detection, and post-exit guidance.
-
-### Previous fixes (v1)
-- Fixed GPU detection — no longer forces GPU acceleration on unsupported hardware
-- Added antivirus detection and guidance
-- Added pre-flight binary checks
+- **Antivirus detection** — Warns you if Windows Defender or other antivirus may have blocked the AI engine.
+- **Pre-flight checks** — Verifies the AI binary exists before trying to launch.
 
 ## Common Issues
 
 ### Windows: AI hangs at "LOADING MODEL INTO MEMORY..."
-**If you have the OLD launcher (pre-March 2026):** Download the new one above. The old version used `llamafile.exe` which antivirus software silently blocks.
+Download the updated launcher above — the old version had a GPU bug that caused infinite hangs on non-NVIDIA systems.
 
-**If you already have the new launcher:** Your antivirus may still be blocking `llama-cli.exe`. Open **Windows Security > Virus & threat protection > Protection history** and look for a blocked file. Click **"Allow on device"** and try again.
+If it still hangs with the new launcher, your antivirus may be silently blocking `llamafile.exe`. Open **Windows Security > Virus & threat protection > Protection history** and look for a blocked file. Click **"Allow on device"** and try again.
 
 ### Windows: Terminal opens and closes immediately
-Your antivirus deleted the engine binary. Check **Windows Security > Protection history**, restore the file, and add the `.system\windows` folder to your exclusions.
+Your antivirus likely deleted the engine binary. Check **Windows Security > Protection history**, restore the file, and add the drive to your exclusions.
 
-### Mac: "llama-cli can't be opened"
-Open **System Settings > Privacy & Security**, scroll down, find the blocked app message, and click **"Allow Anyway"**.
+### Mac: "can't be opened" or nothing happens
+Right-click (Control-click) the launcher > Open > click "Open" in the dialog. Or go to **System Settings > Privacy & Security**, scroll down, and click **"Allow Anyway"**.
 
 ### Linux: Permission denied
 Run: `chmod +x /path/to/drive/LinuxLaunch.sh` and try again.
@@ -55,7 +51,7 @@ Place them in the `.system` folder on your drive.
 
 ## Need Help?
 
-Use our AI support chatbot at [opensourceeverything.io](https://opensourceeverything.io) — click the chat button in the bottom-right corner. It can diagnose your issue and walk you through fixes.
+Visit [opensourceeverything.io](https://opensourceeverything.io) and click the wrench icon in the bottom-right corner — our LLM Engineer can diagnose your setup, write custom fixes, and rebuild your launcher on the spot.
 
 Instagram: [@open.source.everything](https://instagram.com/open.source.everything)
 
