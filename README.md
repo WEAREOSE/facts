@@ -36,7 +36,7 @@ These go in the `.system/` folder:
 
 | File | Size | Source |
 |------|------|--------|
-| `llamafile.exe` | ~294MB | [Mozilla llamafile releases](https://github.com/Mozilla-Ocho/llamafile/releases) |
+| `llamafile.exe` | ~293MB | [llamafile v0.9.2](https://github.com/Mozilla-Ocho/llamafile/releases/download/0.9.2/llamafile-0.9.2) (rename to `llamafile.exe`) |
 | `Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf` | ~4.0GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/tree/main/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
 | `Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf` | ~2.3GB | [HuggingFace](https://huggingface.co/prithivMLmods/Qwen3-4B-2507-abliterated-GGUF/tree/main/Qwen3-4B-Instruct-2507-abliterated-GGUF) |
 
@@ -101,7 +101,7 @@ facts/
 ### Windows
 | Problem | Fix |
 |---------|-----|
-| Hangs at "LOADING MODEL" | Download [updated launcher](https://github.com/WEAREOSE/facts). Old versions forced GPU offload on non-NVIDIA systems. |
+| Hangs at "LOADING MODEL" | **Most likely cause:** llamafile v0.9.3+ has broken GPU on Windows. Replace `llamafile.exe` in `.system/` with [v0.9.2](https://github.com/Mozilla-Ocho/llamafile/releases/download/0.9.2/llamafile-0.9.2) (rename to `llamafile.exe`). Also download the [updated launcher](https://github.com/WEAREOSE/facts). |
 | Terminal opens and closes instantly | Antivirus quarantined `llamafile.exe`. Windows Security → Protection History → Allow on device. |
 | SmartScreen warning | Click "More info" → "Run anyway" |
 | Slow performance | Close other apps. Check Task Manager → Memory. Need 4GB+ free. |
@@ -129,7 +129,7 @@ facts/
 
 | Component | Technology | License |
 |-----------|-----------|---------|
-| AI Engine (Win/Linux) | [llamafile](https://github.com/Mozilla-Ocho/llamafile) (cosmopolitan binary) | MIT |
+| AI Engine (Win/Linux) | [llamafile v0.9.2](https://github.com/Mozilla-Ocho/llamafile/releases/tag/0.9.2) (cosmopolitan binary) | MIT |
 | AI Engine (Mac) | [llama.cpp](https://github.com/ggerganov/llama.cpp) (native ARM64) | MIT |
 | Model | [Qwen3-4B-Instruct abliterated](https://huggingface.co/prithivMLmods/Qwen3-4B-Instruct-2507-abliterated-GGUF) | Apache 2.0 |
 | Context Window | 8192 tokens | — |
