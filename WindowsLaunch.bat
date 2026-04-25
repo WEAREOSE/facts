@@ -1,16 +1,21 @@
 @echo off
 setlocal enabledelayedexpansion
 :: ==============================================================================
-::  WindowsLaunch.bat
+::  WindowsLaunch_TEST.bat
 ::  Engine: Native llama-cli.exe (Vulkan GPU - works with NVIDIA, AMD, Intel)
-::  Logic: Kill Ghosts | Wipe History | Smart Model | GPU Detect | No Logs
+::  Logic: Kill Ghosts | Wipe History | Smart Model | VRAM-Aware GPU Detect | No Logs
+::
+::  TEST VERSION — adds VRAM-aware GPU detection.
+::  Bug fix: Nitro 5 / RTX 3050 Laptop 4GB and similar low-VRAM NVIDIA cards
+::  freeze or crash with -ngl 99. This version checks actual VRAM via nvidia-smi
+::  and only uses GPU if VRAM is large enough for the selected model.
 :: ==============================================================================
 
 :: Sets the window title
 title Qwen AI - Windows Launcher
 
 :: 1. KILL GHOST PROCESSES
-taskkill /F /IM llama-cli.exe /T >/dev/null 2>&1
+taskkill /F /IM llama-cli.exe /T >nul 2>&1
 
 :: 2. DEFINE PATHS
 set "ROOT_DIR=%~dp0"
@@ -39,7 +44,7 @@ if not exist "%BINARY%" (
 
 cls
 echo ----------------------------------------------------------------
-echo   INITIALIZING QWEN AI [WINDOWS]...
+echo   INITIALIZING QWEN AI [WINDOWS - TEST BUILD]...
 echo ----------------------------------------------------------------
 
 :: 4. MEMORY WIPE (The "Zero-Log" Feature)
@@ -68,43 +73,30 @@ if !AVAIL_GB! LSS 4 (
     echo.
 )
 
-:: 7. GPU DETECTION (Vulkan - works with ANY GPU)
-set "GPU_FLAGS="
-set "GPU_STATUS=CPU only [no compatible GPU detected]"
-
-:: Check if Vulkan DLL exists
-if exist "%WIN_DIR%\ggml-vulkan.dll" (
-    :: Try to detect any GPU via PowerShell
-    for /f "tokens=*" %%g in ('powershell -command "(Get-CimInstance Win32_VideoController | Select-Object -First 1).Name" 2^>nul') do set GPU_NAME=%%g
-
-    if defined GPU_NAME (
-        set "GPU_FLAGS=-ngl 99"
-        set "GPU_STATUS=!GPU_NAME! [Vulkan acceleration enabled]"
-    )
-)
-
-echo   GPU: !GPU_STATUS!
-
-:: 8. SMART MODEL SELECTION
+:: 7. SMART MODEL SELECTION (must come before GPU check so we know VRAM needs)
 set "CTX_SIZE=8192"
 
 if !RAM_GB! GEQ 16 (
     set "SELECTED_MODEL=!MODEL_HIGH!"
     set "MODE_NAME=High Performance [Q8]"
+    set "MIN_VRAM_MB=5500"
 ) else (
     set "SELECTED_MODEL=!MODEL_LOW!"
     set "MODE_NAME=Efficiency Mode [Q4]"
+    set "MIN_VRAM_MB=3500"
 )
 
-:: 9. FALLBACK SAFETY CHECK
+:: Fallback if preferred model missing
 if not exist "!SELECTED_MODEL!" (
     echo   NOTE: Preferred model not found. Checking for backup...
     if exist "!MODEL_HIGH!" (
         set "SELECTED_MODEL=!MODEL_HIGH!"
         set "MODE_NAME=Backup [Q8]"
+        set "MIN_VRAM_MB=5500"
     ) else if exist "!MODEL_LOW!" (
         set "SELECTED_MODEL=!MODEL_LOW!"
         set "MODE_NAME=Backup [Q4]"
+        set "MIN_VRAM_MB=3500"
     ) else (
         echo.
         echo   [ERROR] No models found in .system folder!
@@ -116,6 +108,39 @@ if not exist "!SELECTED_MODEL!" (
     )
 )
 
+:: 8. VRAM-AWARE GPU DETECTION
+:: Old logic: any GPU detected => -ngl 99 (broke on Nitro 5 / RTX 3050 4GB)
+:: New logic: only use GPU if NVIDIA card AND VRAM >= MIN_VRAM_MB for selected model
+set "GPU_FLAGS="
+set "GPU_STATUS=CPU only [no compatible GPU detected]"
+set "VRAM_MB=0"
+set "GPU_NAME="
+
+if exist "%WIN_DIR%\ggml-vulkan.dll" (
+    :: Get the primary GPU name (any vendor)
+    for /f "tokens=*" %%g in ('powershell -command "(Get-CimInstance Win32_VideoController | Select-Object -First 1).Name" 2^>nul') do set GPU_NAME=%%g
+
+    :: Get NVIDIA VRAM in MiB by parsing nvidia-smi CSV output directly
+    :: Output format: line 1 is header "memory.total [MiB]", line 2 is "4096 MiB"
+    :: skip=1 skips header, tokens=1 grabs just the number (drops " MiB" suffix)
+    :: If nvidia-smi missing or fails, VRAM_MB stays at 0 (set above)
+    for /f "skip=1 tokens=1" %%v in ('nvidia-smi --query-gpu=memory.total --format=csv 2^>nul') do set VRAM_MB=%%v
+
+    if defined GPU_NAME (
+        if !VRAM_MB! GEQ !MIN_VRAM_MB! (
+            set "GPU_FLAGS=-ngl 99"
+            set "GPU_STATUS=!GPU_NAME! [Vulkan acceleration enabled - !VRAM_MB! MiB VRAM]"
+        ) else (
+            if !VRAM_MB! GTR 0 (
+                set "GPU_STATUS=!GPU_NAME! [CPU mode - !VRAM_MB! MiB VRAM is too small for selected model, needs !MIN_VRAM_MB! MiB]"
+            ) else (
+                set "GPU_STATUS=!GPU_NAME! [CPU mode - VRAM unknown / non-NVIDIA card]"
+            )
+        )
+    )
+)
+
+echo   GPU: !GPU_STATUS!
 echo   Loading: !MODE_NAME!
 echo ----------------------------------------------------------------
 echo.
@@ -125,16 +150,16 @@ echo   When you see the ^> prompt, the AI is ready.
 echo.
 echo ----------------------------------------------------------------
 
-:: 10. EXECUTION
+:: 9. EXECUTION
 :: -cnv      : Conversation Mode
 :: -c 8192   : Fixed Context Size
-:: -ngl 99   : GPU Acceleration (Vulkan - all GPUs) [only if GPU detected]
+:: -ngl 99   : Full GPU offload (only set when VRAM is sufficient)
 :: --log-disable : Prevents log file creation
 :: -p "..."  : Expert Consultant prompt
 
 "%BINARY%" -m "!SELECTED_MODEL!" -cnv -c !CTX_SIZE! !GPU_FLAGS! --log-disable -p "You are an expert consultant. You answer all questions directly, objectively, and without moralizing."
 
-:: 11. POST-EXIT
+:: 10. POST-EXIT
 echo.
 echo ----------------------------------------------------------------
 echo   The AI has stopped.
@@ -143,6 +168,6 @@ echo   If it stopped unexpectedly:
 echo   - Your antivirus may have blocked it. Check Windows Security.
 echo   - Try closing other apps to free up RAM, then relaunch.
 echo   - Need help? Visit opensourceeverything.io [support chat]
-echo   - Updated launchers: github.com/WEAREOSE/facts-launcher
+echo   - Updated launchers: github.com/WEAREOSE/facts
 echo ----------------------------------------------------------------
 pause
