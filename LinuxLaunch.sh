@@ -115,36 +115,25 @@ elif [ -f "$LINUX_DIR/libggml-vulkan.so" ]; then
     # First launch — probe Vulkan with a safety test
     echo "  GPU: testing Vulkan compatibility (up to 90 seconds, one time only)..."
 
+    # Safety test design (rewritten Apr 27, 2026):
+    #   - One-shot completion mode (-no-cnv) so llama-cli exits cleanly after -n 1 token.
+    #   - --no-display-prompt so the prompt text doesn't echo.
+    #   - </dev/null on stdin so llama-cli sees no tty (extra defense vs interactive prompts).
+    #   - timeout 60s so a Vulkan hang doesn't freeze the launcher.
+    #   - Success = exit code 0 (model loaded + token generated).
+    #   - Failure = non-zero (timeout 124, crash, model load error, etc.) → CPU fallback.
+    #   - -c 256 because Qwen3's chat template alone is bigger than 64.
     TEST_OUT=$(mktemp)
-    # -no-cnv + --no-display-prompt: newer llama-cli defaults to INTERACTIVE mode for chat-template
-    # models which spams `>` prompts to /dev/tty (escapes our redirect). These flags force one-shot
-    # completion mode so the safety test exits silently. -c 256 because the chat template alone
-    # exceeds 64 tokens on Qwen3 abliterated, causing a degenerate state. (Bug found Apr 27, 2026.)
-    "$BINARY" -m "$SELECTED_MODEL" -ngl auto -c 256 -n 1 -p "test" -no-cnv --no-display-prompt --log-disable > "$TEST_OUT" 2>&1 &
-    TEST_PID=$!
-
-    # Poll for up to 90 seconds, looking for "available commands" = model loaded
-    GPU_TEST="TIMEOUT"
-    for i in $(seq 1 18); do
-        sleep 5
-        if ! kill -0 $TEST_PID 2>/dev/null; then
-            # Process exited on its own (normal or crashed)
-            if grep -q "available commands" "$TEST_OUT" 2>/dev/null; then
-                GPU_TEST="OK"
-            else
-                GPU_TEST="FAIL"
-            fi
-            break
-        fi
-        if grep -q "available commands" "$TEST_OUT" 2>/dev/null; then
-            GPU_TEST="OK"
-            break
-        fi
-    done
-
-    # Kill the test process if it's still running
-    kill -9 $TEST_PID 2>/dev/null
+    timeout 90 "$BINARY" -m "$SELECTED_MODEL" -ngl auto -c 256 -n 1 -p "x" \
+        -no-cnv --no-display-prompt --log-disable </dev/null > "$TEST_OUT" 2>&1
+    GPU_TEST_CODE=$?
     rm -f "$TEST_OUT"
+
+    if [ $GPU_TEST_CODE -eq 0 ]; then
+        GPU_TEST="OK"
+    else
+        GPU_TEST="FAIL"
+    fi
 
     if [ "$GPU_TEST" = "OK" ]; then
         GPU_FLAGS="-ngl auto"
