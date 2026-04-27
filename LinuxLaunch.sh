@@ -115,24 +115,25 @@ elif [ -f "$LINUX_DIR/libggml-vulkan.so" ]; then
     # First launch — probe Vulkan with a safety test
     echo "  GPU: testing Vulkan compatibility (up to 90 seconds, one time only)..."
 
-    # Safety test design (rewritten Apr 27, 2026):
-    #   - One-shot completion mode (-no-cnv) so llama-cli exits cleanly after -n 1 token.
-    #   - --no-display-prompt so the prompt text doesn't echo.
-    #   - </dev/null on stdin so llama-cli sees no tty (extra defense vs interactive prompts).
-    #   - timeout 60s so a Vulkan hang doesn't freeze the launcher.
-    #   - Success = exit code 0 (model loaded + token generated).
-    #   - Failure = non-zero (timeout 124, crash, model load error, etc.) → CPU fallback.
-    #   - -c 256 because Qwen3's chat template alone is bigger than 64.
-    TEST_OUT=$(mktemp)
-    timeout 90 "$BINARY" -m "$SELECTED_MODEL" -ngl auto -c 256 -n 1 -p "x" \
-        -no-cnv --no-display-prompt --log-disable </dev/null > "$TEST_OUT" 2>&1
-    GPU_TEST_CODE=$?
-    rm -f "$TEST_OUT"
-
-    if [ $GPU_TEST_CODE -eq 0 ]; then
-        GPU_TEST="OK"
-    else
-        GPU_TEST="FAIL"
+    # Safety test (rewritten Apr 27, 2026):
+    # Use llama-bench instead of llama-cli — llama-bench has NO interactive mode,
+    # outputs clean structured t/s, and exits cleanly. llama-cli with -no-cnv was
+    # generating > tokens infinitely (170MB of output in 90s) ignoring -n 1.
+    #   - llama-bench exits 0 on success (model loaded + 1 token generated)
+    #   - llama-bench exits non-zero on failure (Vulkan hang, OOM, crash)
+    #   - timeout 90 wraps it in case Vulkan deadlocks
+    BENCH="$LINUX_DIR/llama-bench"
+    GPU_TEST="FAIL"
+    if [ -f "$BENCH" ]; then
+        chmod +x "$BENCH" 2>/dev/null
+        TEST_OUT=$(mktemp)
+        timeout 90 "$BENCH" -m "$SELECTED_MODEL" -ngl 99 -p 0 -n 1 --no-warmup \
+            </dev/null > "$TEST_OUT" 2>&1
+        GPU_TEST_CODE=$?
+        rm -f "$TEST_OUT"
+        if [ $GPU_TEST_CODE -eq 0 ]; then
+            GPU_TEST="OK"
+        fi
     fi
 
     if [ "$GPU_TEST" = "OK" ]; then
