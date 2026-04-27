@@ -116,7 +116,11 @@ elif [ -f "$LINUX_DIR/libggml-vulkan.so" ]; then
     echo "  GPU: testing Vulkan compatibility (up to 90 seconds, one time only)..."
 
     TEST_OUT=$(mktemp)
-    "$BINARY" -m "$SELECTED_MODEL" -ngl auto -c 64 -n 1 -p "test" --log-disable --reasoning-budget 0 > "$TEST_OUT" 2>&1 &
+    # -no-cnv + --no-display-prompt: newer llama-cli defaults to INTERACTIVE mode for chat-template
+    # models which spams `>` prompts to /dev/tty (escapes our redirect). These flags force one-shot
+    # completion mode so the safety test exits silently. -c 256 because the chat template alone
+    # exceeds 64 tokens on Qwen3 abliterated, causing a degenerate state. (Bug found Apr 27, 2026.)
+    "$BINARY" -m "$SELECTED_MODEL" -ngl auto -c 256 -n 1 -p "test" -no-cnv --no-display-prompt --log-disable > "$TEST_OUT" 2>&1 &
     TEST_PID=$!
 
     # Poll for up to 90 seconds, looking for "available commands" = model loaded
