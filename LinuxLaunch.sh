@@ -115,36 +115,42 @@ elif [ -f "$LINUX_DIR/libggml-vulkan.so" ]; then
     # First launch — probe Vulkan with a safety test
     echo "  GPU: testing Vulkan compatibility (up to 90 seconds, one time only)..."
 
-    # Safety test (rewritten Apr 27, 2026):
-    # Use llama-bench instead of llama-cli — llama-bench has NO interactive mode,
-    # outputs clean structured t/s, and exits cleanly. llama-cli with -no-cnv was
-    # generating > tokens infinitely (170MB of output in 90s) ignoring -n 1.
-    #   - llama-bench exits 0 on success (model loaded + 1 token generated)
-    #   - llama-bench exits non-zero on failure (Vulkan hang, OOM, crash)
-    #   - timeout 90 wraps it in case Vulkan deadlocks
-    BENCH="$LINUX_DIR/llama-bench"
-    GPU_TEST="FAIL"
-    if [ -f "$BENCH" ]; then
-        chmod +x "$BENCH" 2>/dev/null
-        TEST_OUT=$(mktemp)
-        timeout 90 "$BENCH" -m "$SELECTED_MODEL" -ngl 99 -p 0 -n 1 --no-warmup \
-            </dev/null > "$TEST_OUT" 2>&1
-        GPU_TEST_CODE=$?
-        rm -f "$TEST_OUT"
-        if [ $GPU_TEST_CODE -eq 0 ]; then
-            GPU_TEST="OK"
-        fi
-    fi
+    # Smart benchmark (Apr 27, 2026): test BOTH GPU + CPU, pick the faster one.
+    # On weak iGPUs (Intel UHD 6xx/7xx, AMD Vega APUs) Vulkan LOADS but is slower
+    # than CPU due to memory bandwidth + setup overhead. Don't trust GPU presence
+    # — measure both and let the data decide.
+    echo "  GPU: benchmarking GPU vs CPU (one-time, ~30 seconds)..."
 
-    if [ "$GPU_TEST" = "OK" ]; then
-        GPU_FLAGS="-ngl auto"
-        GPU_STATUS="Vulkan [verified]"
-        echo "GPU verified" > "$SYSTEM_DIR/.gpu_verified"
+    BENCH="$LINUX_DIR/llama-bench"
+    chmod +x "$BENCH" 2>/dev/null
+
+    # Use the smaller (Q4) model for the bench — same relative perf, faster to load
+    BENCH_MODEL="$MODEL_LOW"
+    [ ! -f "$BENCH_MODEL" ] && BENCH_MODEL="$MODEL_HIGH"
+
+    GPU_TG=$(timeout 90 "$BENCH" -m "$BENCH_MODEL" -ngl 99 -p 0 -n 32 --no-warmup 2>/dev/null \
+        | awk -F'|' '/tg/ { for(i=NF;i>=1;i--) if(length($i)>2){gsub(/[ \t]/,"",$i); split($i,a,"±"); print a[1]; exit} }')
+    CPU_TG=$(timeout 90 "$BENCH" -m "$BENCH_MODEL" -ngl 0 -p 0 -n 32 --no-warmup 2>/dev/null \
+        | awk -F'|' '/tg/ { for(i=NF;i>=1;i--) if(length($i)>2){gsub(/[ \t]/,"",$i); split($i,a,"±"); print a[1]; exit} }')
+
+    if [ -z "$GPU_TG" ] || [ -z "$CPU_TG" ]; then
+        echo "  Benchmark inconclusive — defaulting to CPU mode."
+        echo "CPU mode (benchmark failed)" > "$SYSTEM_DIR/.cpu_mode"
+        GPU_FLAGS="-ngl 0"
+        GPU_STATUS="CPU mode [benchmark failed]"
     else
-        echo "  GPU test did not pass. Switching to CPU mode."
-        echo "  This is normal for some GPU drivers. Performance is still good on CPU."
-        echo "CPU mode" > "$SYSTEM_DIR/.cpu_mode"
-        GPU_STATUS="CPU mode [GPU incompatible]"
+        # GPU wins ONLY if at least 10% faster than CPU (margin to avoid flapping)
+        FASTER=$(awk -v g="$GPU_TG" -v c="$CPU_TG" 'BEGIN { print (g > c * 1.1) ? "GPU" : "CPU" }')
+        echo "  Benchmark: GPU=${GPU_TG} t/s, CPU=${CPU_TG} t/s — $FASTER wins"
+        if [ "$FASTER" = "GPU" ]; then
+            GPU_FLAGS="-ngl auto"
+            GPU_STATUS="Vulkan [${GPU_TG} t/s vs CPU ${CPU_TG} t/s]"
+            echo "GPU verified ($GPU_TG vs $CPU_TG t/s)" > "$SYSTEM_DIR/.gpu_verified"
+        else
+            GPU_FLAGS="-ngl 0"
+            GPU_STATUS="CPU [${CPU_TG} t/s, GPU was only ${GPU_TG} t/s]"
+            echo "CPU mode ($CPU_TG vs $GPU_TG t/s)" > "$SYSTEM_DIR/.cpu_mode"
+        fi
     fi
 fi
 

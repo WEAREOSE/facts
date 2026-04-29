@@ -1,0 +1,296 @@
+================================================================
+              facts. TROUBLESHOOTING GUIDE
+                      Linux
+================================================================
+
+  This guide covers every known issue you may encounter when
+  running facts. on Linux. Work through the issues in order.
+
+  QUICK FIXES FIRST:
+    1. Download the latest launcher from:
+       https://github.com/WEAREOSE/facts
+       Replace LinuxLaunch.sh on the drive with the new one.
+
+    2. Need help? Use our LLM Engineer at:
+       https://opensourceeverything.io
+       Click the wrench icon in the bottom-right corner.
+       He can diagnose your system and write custom fixes.
+
+
+================================================================
+  HOW THE LAUNCHER WORKS (so you can debug it)
+================================================================
+
+  facts. on Linux uses a native llama.cpp build with Vulkan,
+  which means GPU acceleration works on ANY modern GPU vendor:
+  NVIDIA, AMD, and Intel (including integrated graphics).
+
+  Files involved:
+    LinuxLaunch.sh                  -- the launcher script
+    .system/linux/llama-cli         -- the native AI engine
+    .system/linux/libggml-vulkan.so -- Vulkan GPU backend
+    .system/linux/lib*.so           -- supporting libraries
+    .system/Qwen3-4B-...gguf        -- the AI model files
+
+  On first launch, the launcher runs a one-time GPU vs CPU
+  benchmark (~30 seconds) and picks whichever is faster on
+  YOUR hardware. The decision is cached so future launches
+  skip the benchmark and start immediately.
+
+  Cache files (hidden, inside .system/):
+    .gpu_verified  -- saved if your GPU beat your CPU
+    .cpu_mode      -- saved if your CPU beat your GPU
+                      (or if the GPU test crashed)
+
+  If you ever change GPU drivers or upgrade hardware, delete
+  whichever cache file exists and the launcher will re-bench
+  on the next launch.
+
+
+================================================================
+  ISSUE 1: "Permission denied" when running LinuxLaunch.sh
+================================================================
+
+  CAUSE: The script doesn't have execute permission, OR your
+  file manager opens .sh files in a text editor instead of
+  running them.
+
+  EASIEST FIX (works on every distro):
+    1. Open a terminal.
+    2. Navigate to the drive (see ISSUE 2 if you can't find it).
+    3. Run with bash directly:
+
+       bash LinuxLaunch.sh
+
+    Bash invokes the script regardless of execute permission.
+    You don't need chmod for this approach.
+
+  ALTERNATIVE FIX (one-time chmod, then double-clickable from
+  some file managers):
+    1. cd /media/$USER/facts
+    2. chmod +x LinuxLaunch.sh
+    3. ./LinuxLaunch.sh
+
+
+================================================================
+  ISSUE 2: Drive doesn't appear or can't find the files
+================================================================
+
+  CAUSE: Linux mounts USB drives in different locations
+  depending on the distro.
+
+  COMMON MOUNT POINTS:
+    - /media/yourusername/facts          (Ubuntu, Debian, Mint, Pop)
+    - /run/media/yourusername/facts      (Fedora, RHEL, openSUSE)
+    - /mnt/facts                          (manual mount)
+
+  HOW TO FIND YOUR DRIVE:
+    1. Run: lsblk
+    2. Look for a device with ~29GB capacity, label "facts".
+    3. Note the MOUNTPOINT in the last column.
+    4. Navigate there: cd "<mount point>"
+
+  If lsblk shows the device but no MOUNTPOINT, the drive isn't
+  auto-mounted. Mount it manually:
+    sudo mkdir -p /mnt/facts
+    sudo mount /dev/sdX1 /mnt/facts        (replace sdX1 with your device)
+
+
+================================================================
+  ISSUE 3: "cannot execute binary file: format error"
+================================================================
+
+  CAUSE: Older versions of LinuxLaunch.sh tried to run a Mac
+  binary on Linux. If you see this error, you have an old
+  drive that needs the Build 5 launcher.
+
+  FIX:
+    1. Download the latest launcher from:
+       https://github.com/WEAREOSE/facts
+    2. Click "LinuxLaunch.sh" -> click the download icon
+       (top-right) to save it.
+    3. Drag the downloaded file onto your drive's root,
+       replacing the old one when asked.
+    4. Eject and re-plug the drive.
+    5. Run: bash LinuxLaunch.sh
+
+  The Build 5 launcher uses .system/linux/llama-cli (native
+  Linux ELF binary) -- no more "format error" on Linux.
+
+
+================================================================
+  ISSUE 4: The AI loads but is extremely slow
+================================================================
+
+  CAUSE A -- Wrong CPU/GPU choice cached:
+    The launcher's first-launch benchmark might have made the
+    wrong decision (rare, but possible if your system was busy
+    during the bench).
+
+    To force a re-bench:
+       rm /media/$USER/facts/.system/.gpu_verified
+       rm /media/$USER/facts/.system/.cpu_mode
+       bash /media/$USER/facts/LinuxLaunch.sh
+
+    Watch the output for "Benchmark: GPU=X t/s, CPU=Y t/s --
+    [GPU/CPU] wins". If the result looks wrong, stop the
+    launcher and ask the LLM Engineer for help.
+
+  CAUSE B -- Not enough RAM:
+    Need at least 8GB total, 4GB free.
+    Check with: free -h
+    Close other apps if memory is tight.
+
+  CAUSE C -- USB 2.0 port:
+    The initial model load is slow on USB 2.0 (a 4GB model
+    over USB 2.0 takes ~2 minutes to load). Use a USB 3.0+
+    port if available -- usually blue inside the connector.
+
+  CAUSE D -- Swap thrashing:
+    If your system is swapping to disk, performance tanks.
+    Check with: free -h
+    If "Swap" used > 100MB, close other apps.
+
+
+================================================================
+  ISSUE 5: Force CPU mode, force GPU mode, or re-test
+================================================================
+
+  THE LAUNCHER DECIDES AUTOMATICALLY:
+    On first launch, it benchmarks GPU vs CPU and picks
+    whichever is faster (with a 10% margin to avoid flapping).
+
+  TO FORCE CPU MODE (skip GPU entirely):
+    Create the cache file manually:
+       echo "manual override" > /media/$USER/facts/.system/.cpu_mode
+
+  TO FORCE GPU MODE (skip the benchmark):
+    Create the verified marker:
+       echo "manual override" > /media/$USER/facts/.system/.gpu_verified
+
+    Note: only force GPU if you've confirmed it's actually
+    faster. On older Intel iGPUs (UHD 6xx/7xx series), the GPU
+    is often slower than a modern CPU due to memory bandwidth
+    limits, and the launcher correctly picks CPU.
+
+  TO RE-RUN THE BENCHMARK:
+    Delete BOTH cache files:
+       rm /media/$USER/facts/.system/.gpu_verified
+       rm /media/$USER/facts/.system/.cpu_mode
+
+    Then run the launcher again. It'll re-bench and rewrite
+    one of the cache files based on the new result.
+
+
+================================================================
+  ISSUE 6: GPU benchmark hangs or "GPU test did not pass"
+================================================================
+
+  CAUSE A -- Buggy Vulkan driver:
+    Some older Vulkan drivers crash or hang under benchmark
+    load. This is unfortunately common on certain hardware.
+
+    The launcher detects this via a 90-second timeout. If the
+    bench doesn't complete in 90 seconds, it falls back to
+    CPU mode and saves .cpu_mode so future launches skip the
+    test entirely.
+
+    You'll see: "Benchmark inconclusive -- defaulting to CPU
+    mode." That's the launcher protecting you from a hang.
+
+  CAUSE B -- Missing Vulkan runtime:
+    Some minimal distros don't ship Vulkan ICDs by default.
+    If your distro has no GPU vendor's Vulkan loader installed,
+    the bench will fail and CPU mode is used. That's still fine.
+
+  CAUSE C -- Conflicting Vulkan layers:
+    Tools like RivaTuner / OBS / HudSight inject Vulkan layers
+    that interfere with compute. The launcher disables them
+    automatically via VK_LOADER_LAYERS_DISABLE, but if you
+    have something exotic loaded, the bench may still fail.
+
+  WHAT TO DO:
+    Just let it use CPU mode. The 4B model runs fine on any
+    modern CPU (3-8 t/s on an i5/i7, faster on Ryzen).
+
+
+================================================================
+  ISSUE 7: The AI crashes or freezes mid-conversation
+================================================================
+
+  CAUSE: Context window full (8192 tokens per conversation),
+  or out of RAM.
+
+  FIX:
+    Close the terminal and re-run the launcher. The launcher
+    wipes all history on each launch -- start fresh.
+
+
+================================================================
+  ISSUE 8: Distro-specific notes
+================================================================
+
+  UBUNTU / DEBIAN / MINT / POP!_OS:
+    Should work out of the box. Drive auto-mounts to
+    /media/$USER/facts. Run with: bash LinuxLaunch.sh
+
+  FEDORA / RHEL / OPENSUSE:
+    Drive auto-mounts to /run/media/$USER/facts.
+    Adjust paths in this guide accordingly.
+
+  ARCH / MANJARO:
+    May need udisks2 for auto-mount:
+       sudo pacman -S udisks2
+    Then unplug and re-plug the drive.
+
+  NIXOS:
+    Native binaries may need patchelf if the dynamic linker
+    differs from /lib64/ld-linux-x86-64.so.2:
+       nix-shell -p patchelf --run "patchelf --set-interpreter \
+         /lib64/ld-linux-x86-64.so.2 .system/linux/llama-cli"
+    Or just run the launcher inside a steam-run / FHS env.
+
+  ALPINE / MUSL-BASED:
+    Not currently supported -- the bundled binary is glibc-only.
+    Install a glibc compatibility layer (gcompat) or use a
+    glibc-based distro.
+
+
+================================================================
+  ISSUE 9: GPU drivers updated -- AI suddenly slow or broken
+================================================================
+
+  CAUSE: A driver update can change Vulkan behavior. Your
+  cached benchmark result from a previous launch might no
+  longer be accurate.
+
+  FIX: Delete the cache and re-bench:
+    rm /media/$USER/facts/.system/.gpu_verified
+    rm /media/$USER/facts/.system/.cpu_mode
+    bash /media/$USER/facts/LinuxLaunch.sh
+
+
+================================================================
+  STILL NOT WORKING?
+================================================================
+
+  1. Try our LLM Engineer first:
+     https://opensourceeverything.io
+     Click the wrench icon in the bottom-right corner. He can
+     diagnose your setup, write custom launch scripts, and
+     rebuild the launcher for your specific system.
+
+  2. Download the latest launcher:
+     https://github.com/WEAREOSE/facts
+
+  3. Reach out to us directly:
+     Instagram: @open.source.everything
+     Website:   opensourceeverything.io
+
+  We are real people and we will make it right.
+
+
+================================================================
+          For the people. By the people.
+               opensourceeverything.io
+================================================================

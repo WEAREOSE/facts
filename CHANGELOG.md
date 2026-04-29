@@ -16,7 +16,7 @@ For setup help see [README.md](README.md).
 ### Added
 - **VRAM-aware GPU detection (Windows).** The launcher now queries actual VRAM via `nvidia-smi` and only enables `-ngl 99` if the card has enough VRAM for the selected model (5500 MiB for Q8, 3500 MiB for Q4). Otherwise it silently uses CPU mode — the AI loads correctly, just slower.
 - **Native Linux engine.** New `.system/linux/` folder with native llama.cpp x86_64 binaries + Vulkan support. Replaces the legacy llamafile fallback path which didn't work with the current model architecture anyway.
-- **Linux GPU compatibility test.** First launch runs a 90-second hidden test to verify Vulkan works on the user's GPU. If it does → cached, future launches are instant with GPU acceleration. If it doesn't → cached as CPU mode, never tries again.
+- **Linux smart benchmark (GPU vs CPU).** First launch runs a ~30-second hidden benchmark that measures token throughput on BOTH the GPU (Vulkan, `-ngl 99`) and the CPU (`-ngl 0`), then picks the faster path. GPU only wins if it's at least 10% faster than CPU — this catches weak iGPUs (Intel UHD 6xx/7xx, low-end AMD Vega APUs) where Vulkan loads but the CPU is actually faster due to memory bandwidth and setup overhead. Result is cached in `.system/.gpu_verified` or `.system/.cpu_mode` so every subsequent launch is instant.
 - **Aesthetic suppression markers.** New drives include `.metadata_never_index` (stops macOS from creating `.Spotlight-V100`) and a zero-byte `.fseventsd` file (stops macOS from creating the `.fseventsd` directory). Drives stay clean across mount/unmount cycles.
 
 ### Changed
