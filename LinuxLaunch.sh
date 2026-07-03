@@ -42,6 +42,7 @@ export VK_LOADER_LAYERS_DISABLE=~implicit~
 # Clear Screen & Set Title
 printf "\033]0;Qwen AI - Linux Launcher\007"
 clear
+cat "$SYSTEM_DIR/ose-logo.txt" 2>/dev/null
 echo "----------------------------------------------------------------"
 echo "  INITIALIZING QWEN AI [LINUX]..."
 echo "----------------------------------------------------------------"
@@ -55,9 +56,6 @@ rm -f "$SYSTEM_DIR/main.session"
 echo "  Cache Status: Wiped Clean [Zero-Log Mode]"
 
 # 5. HARDWARE DETECTION (RAM)
-# Linux's MemTotal reports usable memory AFTER kernel/firmware reservations,
-# so a "16 GB" laptop typically shows 15.x GB. Windows reports raw installed (16).
-# Linux threshold below uses 15 instead of 16 to match a "16 GB" laptop on both OSes.
 if command -v free &>/dev/null; then
     RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
     AVAIL_GB=$(free -g | awk '/^Mem:/{print $7}')
@@ -76,9 +74,17 @@ if [ "$AVAIL_GB" -lt 4 ] 2>/dev/null; then
 fi
 
 # 6. DEFINE MODELS
-MODEL_HIGH="$SYSTEM_DIR/Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf"
-MODEL_LOW="$SYSTEM_DIR/Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf"
-CTX_SIZE="8192"
+MODEL_HIGH="$SYSTEM_DIR/Qwen3.5-4B-abliterated.Q8_0.gguf"
+MODEL_LOW="$SYSTEM_DIR/Qwen3.5-4B-abliterated.Q4_K_M.gguf"
+# Context window sized to RAM — KV for this 4B model is ~144KB/token (16K≈2.3GB, 32K≈4.6GB).
+# 8K floor keeps 8GB machines safe; larger windows on roomier ones. (memory 32 C1)
+# Tiers are nominal-minus-1 (15/30, not 16/32): Linux under-reports total RAM after the
+# kernel + integrated-GPU carve-out, so a 16GB machine shows ~15GB (e.g. 15.37) and a
+# 32GB shows ~31GB. Matches the Q8 model-selection threshold below (also 15). (memory 32 C2)
+CTX_SIZE=8192
+if [ "$RAM_GB" -ge 30 ]; then CTX_SIZE=32768
+elif [ "$RAM_GB" -ge 15 ]; then CTX_SIZE=16384
+fi
 
 if [ "$RAM_GB" -ge 15 ]; then
     SELECTED_MODEL="$MODEL_HIGH"
@@ -107,39 +113,41 @@ GPU_STATUS="CPU only"
 
 # Check for previously cached state (hidden in .system/)
 if [ -f "$SYSTEM_DIR/.cpu_mode" ]; then
+    GPU_FLAGS="-ngl 0"
     GPU_STATUS="CPU mode [saved from previous test — delete .system/.cpu_mode to re-test GPU]"
 elif [ -f "$SYSTEM_DIR/.gpu_verified" ]; then
     GPU_FLAGS="-ngl auto"
     GPU_STATUS="Vulkan [previously verified]"
 elif [ -f "$LINUX_DIR/libggml-vulkan.so" ]; then
-    # First launch — probe Vulkan with a safety test
-    echo "  GPU: testing Vulkan compatibility (up to 90 seconds, one time only)..."
-
-    # Smart benchmark (Apr 27, 2026): test BOTH GPU + CPU, pick the faster one.
-    # On weak iGPUs (Intel UHD 6xx/7xx, AMD Vega APUs) Vulkan LOADS but is slower
-    # than CPU due to memory bandwidth + setup overhead. Don't trust GPU presence
-    # — measure both and let the data decide.
+    # First launch — benchmark GPU vs CPU and pick the faster one
+    # Some GPUs (old Intel iGPUs especially) are SLOWER than the CPU due to memory bandwidth limits
+    # and Vulkan setup overhead. Don't trust GPU presence — measure it.
     echo "  GPU: benchmarking GPU vs CPU (one-time, ~30 seconds)..."
 
     BENCH="$LINUX_DIR/llama-bench"
     chmod +x "$BENCH" 2>/dev/null
 
-    # Use the smaller (Q4) model for the bench — same relative perf, faster to load
+    # Use Q4 model for the benchmark (faster to load, same relative perf as Q8)
     BENCH_MODEL="$MODEL_LOW"
     [ ! -f "$BENCH_MODEL" ] && BENCH_MODEL="$MODEL_HIGH"
 
-    GPU_TG=$(timeout 90 "$BENCH" -m "$BENCH_MODEL" -ngl 99 -p 0 -n 32 --no-warmup 2>/dev/null \
+    # Run benchmarks (32 generation tokens each, no prompt processing — pure tg test)
+    # Suppress all stderr noise so the user sees clean output
+    # timeout 120 guards the documented Vulkan-driver-hang risk; -ngl auto matches the runtime
+    # offload so a low-VRAM GPU that can't hold the whole model isn't unfairly benched. (memory 32 L1/L2)
+    GPU_TG=$(timeout 120 "$BENCH" -m "$BENCH_MODEL" -ngl auto -p 0 -n 32 --no-warmup 2>/dev/null \
         | awk -F'|' '/tg/ { for(i=NF;i>=1;i--) if(length($i)>2){gsub(/[ \t]/,"",$i); split($i,a,"±"); print a[1]; exit} }')
-    CPU_TG=$(timeout 90 "$BENCH" -m "$BENCH_MODEL" -ngl 0 -p 0 -n 32 --no-warmup 2>/dev/null \
+    CPU_TG=$(timeout 120 "$BENCH" -m "$BENCH_MODEL" -ngl 0 -p 0 -n 32 --no-warmup 2>/dev/null \
         | awk -F'|' '/tg/ { for(i=NF;i>=1;i--) if(length($i)>2){gsub(/[ \t]/,"",$i); split($i,a,"±"); print a[1]; exit} }')
 
     if [ -z "$GPU_TG" ] || [ -z "$CPU_TG" ]; then
-        echo "  Benchmark inconclusive — defaulting to CPU mode."
-        echo "CPU mode (benchmark failed)" > "$SYSTEM_DIR/.cpu_mode"
+        # Failed/timed-out this launch — do NOT cache .cpu_mode (a transient failure would lock
+        # the GPU off forever). Use CPU now; re-benchmark next launch. (memory 32 L4)
+        echo "  Benchmark inconclusive this launch — using CPU for now, will re-test next launch."
         GPU_FLAGS="-ngl 0"
         GPU_STATUS="CPU mode [benchmark failed]"
     else
-        # GPU wins ONLY if at least 10% faster than CPU (margin to avoid flapping)
+        # GPU wins only if it's at least 10% faster than CPU (margin to avoid flapping)
         FASTER=$(awk -v g="$GPU_TG" -v c="$CPU_TG" 'BEGIN { print (g > c * 1.1) ? "GPU" : "CPU" }')
         echo "  Benchmark: GPU=${GPU_TG} t/s, CPU=${CPU_TG} t/s — $FASTER wins"
         if [ "$FASTER" = "GPU" ]; then
@@ -165,9 +173,13 @@ echo ""
 echo "----------------------------------------------------------------"
 
 # 8. EXECUTION
-# --reasoning-budget 0 : Disables Qwen3.5 thinking mode (direct answers)
-# Power users: remove --reasoning-budget 0 to enable deep reasoning for complex tasks
-"$BINARY" -m "$SELECTED_MODEL" -cnv -c "$CTX_SIZE" $GPU_FLAGS --log-disable --reasoning-budget 0 -p "You are an expert consultant. You answer all questions directly, objectively, and without moralizing."
+# --reasoning-budget 0 suppresses Qwen3.5 thinking mode (instant answers)
+"$BINARY" -m "$SELECTED_MODEL" -cnv -c "$CTX_SIZE" $GPU_FLAGS --log-disable --jinja --reasoning-budget 0 -sys "You are an expert consultant. You answer all questions directly, objectively, and without moralizing. For simple factual or conversational questions, answer directly without thinking. Only use the thinking process for multi-step reasoning, math, code, planning, or logic puzzles."
+
+# 8b. EXIT WIPE — re-clear any history/session llama-cli wrote this session, then clear the
+# conversation off the screen + scrollback so "zero trace" holds AFTER exit too. (memory 32 L3)
+rm -f "$HOME/.llama_history" "$ROOT_DIR/llama.chat.history" "$SYSTEM_DIR/llama.chat.history" "$ROOT_DIR/main.session" "$SYSTEM_DIR/main.session"
+printf '\033[2J\033[3J\033[H'
 
 # 9. POST-EXIT
 echo ""

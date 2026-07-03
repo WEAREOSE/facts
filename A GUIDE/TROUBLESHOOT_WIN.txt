@@ -1,6 +1,6 @@
 ================================================================
               facts. TROUBLESHOOTING GUIDE
-                     Windows
+                     Windows (v1.5)
 ================================================================
 
   This guide covers every known issue you may encounter when
@@ -25,25 +25,57 @@
 
   facts. on Windows uses a native llama.cpp build with Vulkan.
   GPU acceleration works on NVIDIA, AMD, and Intel (including
-  integrated graphics). On the first launch, the launcher
-  benchmarks GPU vs CPU and picks whichever is faster on YOUR
-  hardware.
+  integrated graphics). On the very first launch, the launcher
+  runs a one-time smart benchmark (GPU vs CPU) and picks
+  whichever is faster on YOUR hardware. The benchmark takes
+  roughly 30 to 90 seconds and can look like the window froze.
+  It did not freeze. Let it finish. It only happens once.
+
+  When you launch, you'll see the OSE logo (ASCII art) followed
+  by:
+
+      INITIALIZING QWEN AI [WINDOWS]...
+
+  If the logo doesn't show up, that's cosmetic. The launcher
+  still works fine without it.
 
   Files involved:
     WindowsLaunch.bat                       -- the launcher
     .system\windows\llama-cli.exe           -- AI engine
+    .system\windows\llama-bench.exe         -- benchmark tool
     .system\windows\ggml-vulkan.dll         -- Vulkan backend
     .system\windows\ggml-cpu-*.dll          -- CPU optimizations
     .system\windows\bench-decide.ps1        -- bench helper
-    .system\Qwen3-4B-...gguf                -- model files
+    .system\Qwen3.5-4B-abliterated...gguf   -- model files
 
   Cache files (hidden, in .system\):
     .gpu_verified  -- saved if GPU beat CPU
-    .cpu_mode      -- saved if CPU beat GPU (or GPU test failed)
+    .cpu_mode      -- saved if CPU beat GPU
 
   If the launcher's GPU detection seems wrong (e.g., your card
-  is fast but launcher chose CPU), delete both cache files and
-  the launcher will re-test on the next launch.
+  is fast but the launcher chose CPU), delete both cache files
+  and the launcher will re-test on the next launch. If the
+  benchmark FAILS (rather than losing), nothing is cached. The
+  launcher uses CPU for that session only and re-tests next
+  launch automatically.
+
+  OTHER THINGS THE LAUNCHER DOES AUTOMATICALLY:
+
+  - Context window sized to your RAM: 8K by default, 16K on
+    16 GB machines, 32K on 32 GB and up. (The README mentions
+    the model supports up to about 262K. That's the model's
+    maximum, not the session default.)
+  - Picks the Q8 model on 16 GB+ machines, Q4 otherwise.
+  - Thinking mode is OFF by default so you get instant
+    answers. If you want to enable it, see READ_ME_FIRST.txt
+    under ADVANCED TWEAKS.
+  - Zero-log: chat history is wiped at every launch AND at
+    exit. You'll see:
+
+      Cache Status: Wiped Clean [Zero-Log Mode]
+
+    On exit the launcher also clears the screen and scrollback,
+    so the conversation doesn't linger in the window.
 
 
 ================================================================
@@ -90,6 +122,10 @@
   Bitdefender, etc.) may flag llama-cli.exe as suspicious
   because it is an unsigned binary that runs from a USB drive.
 
+  If the engine was quarantined, the launcher will tell you:
+
+      [ERROR] llama-cli.exe not found in .system\windows\
+
   FIX:
 
     1. Open your antivirus software.
@@ -105,7 +141,7 @@
     1. Open Windows Security > Virus & threat protection.
     2. Click "Protection history."
     3. Find the blocked item (llama-cli.exe).
-    4. Click it and select "Allow on device."
+    4. Click it and select the option to allow it.
 
   OR add an exclusion:
 
@@ -117,10 +153,19 @@
     4. Click "Add an exclusion" > Folder.
     5. Select the .system folder on your flash drive.
 
+  NOTE: Antivirus can also stall the one-time first-launch
+  benchmark. If that happens, the launcher just uses CPU for
+  that session and re-tests next launch, so add the exclusion
+  and relaunch to get a clean benchmark.
+
 
 ================================================================
-  ISSUE 3: "ERROR: No models found!" or model fails to load
+  ISSUE 3: "No models found" or model fails to load
 ================================================================
+
+  If no model can be found you will see:
+
+      [ERROR] No models found in .system folder!
 
   CAUSE A -- Files are missing:
 
@@ -129,11 +174,12 @@
        hidden files and folders.
     3. You should see a folder called .system.
     4. Inside .system you should see:
-       - Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf
-       - Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf
+       - Qwen3.5-4B-abliterated.Q8_0.gguf
+       - Qwen3.5-4B-abliterated.Q4_K_M.gguf
        - a windows\ subfolder
     5. Inside .system\windows\ you should see:
        - llama-cli.exe
+       - llama-bench.exe
        - llama.dll
        - ggml.dll
        - ggml-vulkan.dll
@@ -142,6 +188,11 @@
 
     If files are missing, the drive may be corrupted.
     Contact us for a replacement (see bottom).
+
+    NOTE: If only ONE model file is missing, the launcher
+    falls back to the other one automatically. You'll see:
+
+      NOTE: Preferred model not found. Checking for backup...
 
   CAUSE B -- Antivirus deleted the file:
 
@@ -185,21 +236,36 @@
 
 
 ================================================================
-  ISSUE 5: Vulkan ErrorOutOfDeviceMemory / "Failed to load model"
+  ISSUE 5: First launch looks frozen / Vulkan memory errors
 ================================================================
 
-  CAUSE: Older drives (Build 4 and earlier) tried to push the
-  ENTIRE AI model onto the GPU. On laptops with low-VRAM
-  NVIDIA cards (RTX 3050 Laptop 4GB, RTX 4050 Laptop 6GB,
-  GTX 1650 Mobile, etc.) this would fail with:
+  FIRST LAUNCH "FREEZE":
 
-      Vulkan ErrorOutOfDeviceMemory:
-      failed to allocate Vulkan1 buffer of size ~1 GB
+  On the very first launch, the launcher benchmarks your GPU
+  against your CPU to pick the faster one. You'll see a line
+  like:
 
-  FIX: Update your launcher to Build 5 (or later). The new
-  launcher does VRAM-aware GPU detection -- it only uses GPU
-  if your card has enough VRAM. Otherwise it falls back to
-  CPU automatically.
+      [benchmarking GPU vs CPU, ~30 seconds, one-time]...
+
+  On slower machines this can take up to about 90 seconds,
+  and the window may look stuck while it runs. It is NOT
+  stuck. Do not close the window. This only happens once;
+  the result is cached and every later launch is fast.
+
+  VULKAN "OUT OF MEMORY" ERRORS:
+
+  CAUSE: Old launchers (Build 4 and earlier) tried to push
+  the ENTIRE AI model onto the GPU. On laptops with low-VRAM
+  cards (RTX 3050 Laptop 4GB, GTX 1650 Mobile, etc.) that
+  would fail with a Vulkan ErrorOutOfDeviceMemory message.
+
+  The v1.5 launcher does not do that. It uses automatic GPU
+  offload that only puts as much of the model on the GPU as
+  your VRAM can actually hold, so low-VRAM cards work without
+  crashing.
+
+  FIX: If you still see a Vulkan out-of-memory error, your
+  launcher is out of date. Update it:
 
     1. Go to https://github.com/WEAREOSE/facts
     2. Click "WindowsLaunch.bat" -> click the download icon
@@ -209,14 +275,6 @@
     4. Eject the drive and re-plug it.
     5. Double-click WindowsLaunch.bat -- should now load.
 
-  After update you may see a line like:
-
-      GPU: NVIDIA GeForce RTX 3050 [CPU mode - VRAM insufficient]
-
-  That is the launcher working as designed. The AI will run
-  on CPU. Performance is slower than a high-VRAM GPU but the
-  AI works correctly.
-
 
 ================================================================
   ISSUE 6: GPU not being used / "GPU only as fast as CPU"
@@ -224,17 +282,40 @@
 
   THE LAUNCHER DECIDES AUTOMATICALLY:
   On first launch the launcher benchmarks GPU vs CPU and picks
-  whichever is faster (with a 10% margin to avoid flapping).
-  Some integrated GPUs (Intel UHD 6xx/7xx, older AMD APUs)
-  are actually slower than the CPU due to memory bandwidth
-  limits -- in which case the launcher correctly picks CPU.
+  whichever is faster. Some integrated GPUs (Intel UHD 6xx/7xx,
+  older AMD APUs) are actually slower than the CPU due to
+  memory bandwidth limits -- in which case the launcher
+  correctly picks CPU. If CPU won the benchmark, later
+  launches will show:
+
+      [CPU mode - saved from previous test]
+
+  and if GPU won:
+
+      [Vulkan - previously verified]
 
   TO RE-RUN THE BENCHMARK (e.g., after a driver update):
     1. Open File Explorer, show hidden items.
     2. Navigate to the .system folder on the drive.
     3. Delete .gpu_verified and .cpu_mode if either exists.
+       (The launcher reminds you too:
+       NOTE: Delete .system\.cpu_mode to re-test GPU.)
     4. Re-run WindowsLaunch.bat. The benchmark will repeat
        on this launch and pick fresh.
+
+  IF THE BENCHMARK FAILS:
+  Sometimes the benchmark can't finish (antivirus stalling
+  it is the usual culprit). You'll see:
+
+      Benchmark inconclusive this launch. Using CPU for now; will re-test next launch.
+
+  and the status line will say:
+
+      [CPU this session - will retry next launch]
+
+  This is NOT cached. Nothing to delete. Just relaunch (after
+  adding an antivirus exclusion, see Issue 2) and it will
+  benchmark again.
 
 
 ================================================================
@@ -245,6 +326,9 @@
 
     The AI requires at least 8 GB of RAM. If your computer
     is using most of its RAM, performance will suffer badly.
+    The launcher warns you at launch if free RAM is low:
+
+      [WARNING] Low available RAM. Close other apps for best performance.
 
     HOW TO CHECK YOUR RAM:
     1. Press Ctrl+Shift+Esc to open Task Manager.
@@ -294,15 +378,20 @@
 
   CAUSE A -- Out of memory:
 
-    Long conversations fill the AI's context window and may
-    exhaust available RAM.
+    Very long conversations can fill the AI's context window
+    and exhaust available RAM. The context window is sized to
+    your machine automatically (8K default, 16K on 16 GB
+    machines, 32K on 32 GB and up), so this is rare, but it
+    can still happen with lots of other apps open.
 
     FIX: Close the window. Relaunch WindowsLaunch.bat. The
-    Nuclear Wipe clears everything and starts fresh.
+    launch wipe clears everything and starts fresh.
 
   CAUSE B -- Ghost process:
 
     A previous llama-cli.exe process may still be running.
+    (The launcher kills leftover processes at startup, but a
+    stuck one can survive.)
 
     FIX:
     1. Press Ctrl+Shift+Esc to open Task Manager.
@@ -344,9 +433,15 @@
   FIX:
     1. Close the window or press Ctrl+C.
     2. Relaunch WindowsLaunch.bat.
-    3. The Nuclear Wipe clears all context. The AI starts
+    3. The launch wipe clears all context. The AI starts
        fresh with zero memory of the previous conversation.
     4. Rephrase your question.
+
+  RELATED: The AI answers instantly by default because
+  thinking mode is turned off. If you want deeper, slower
+  reasoning for math, code, or logic puzzles, you can turn
+  thinking mode on. See READ_ME_FIRST.txt on the drive under
+  ADVANCED TWEAKS for how.
 
 
 ================================================================
@@ -396,7 +491,11 @@
 ================================================================
 
   CAUSE: The Command Prompt may not be using a font that
-  supports all characters the AI outputs.
+  supports all characters. The launcher switches the console
+  to UTF-8 automatically, so this is rare, but old console
+  fonts can still mangle output. (If only the OSE logo at the
+  top looks weird or is missing entirely, that's harmless.
+  The AI works fine without it.)
 
   FIX:
     1. Right-click the title bar of the Command Prompt window.
@@ -443,7 +542,8 @@
 
   IF YOU HAVE 8 GB TOTAL:
     - Close ALL other apps before launching
-    - The AI will load the smaller Q4 model automatically
+    - The launcher will show "Efficiency Mode [Q4]" and load
+      the smaller model automatically
     - Performance will be usable but not fast
 
   IF YOU HAVE 4 GB OR LESS:
@@ -452,7 +552,10 @@
       or get a "not enough memory" error
 
   IF YOU HAVE 16 GB OR MORE:
-    - The AI automatically loads the high-quality Q8 model
+    - The launcher will show "High Performance [Q8]" and
+      load the high-quality model automatically
+    - You also get a bigger context window (16K, or 32K on
+      32 GB and up)
     - You can keep other apps open
     - Best experience
 

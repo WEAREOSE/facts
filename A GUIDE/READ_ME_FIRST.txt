@@ -1,4 +1,69 @@
 ================================================================
+                       facts. 1.5
+             Offline AI on a Flash Drive  (premium)
+            by Open Source Everything (OSE)
+================================================================
+
+
+  Thanks for getting facts. 1.5, the upgraded drive. Here's what
+  makes it different from the standard facts.:
+
+    - Smarter model. It runs Qwen3.5-4B (abliterated) instead of
+      the standard Qwen3. It reasons noticeably better and handles
+      much longer conversations — the launcher sizes the context
+      window to your RAM (8K to 32K tokens); the model itself
+      supports up to ~262K.
+
+    - Smart speed test (Windows and Linux). The first time you
+      launch it on a new computer, it runs a quick 30-second test
+      to see whether your GPU or your CPU is actually faster, then
+      always uses the faster one. (Macs skip it — Apple Silicon
+      always uses the Metal GPU, Intel Macs always use the CPU.)
+
+    - Tuned storage. The drive is formatted with larger clusters
+      so the big AI model files load faster.
+
+  Everything else works like standard facts.: double-click the
+  launcher for your system (Mac, Windows, or Linux) and the AI
+  starts in a terminal window. Fully offline, fully private.
+
+
+  USING THIS DRIVE ON DIFFERENT COMPUTERS  (Windows & Linux only)
+  ----------------------------------------------------------------
+  (Macs pick their engine automatically every launch and never
+  cache a speed test, so this section does not apply to them.)
+
+  On Windows and Linux the launcher remembers whether your CPU or
+  GPU was faster the first time you ran it, so it can skip the
+  30-second test on later launches. If you move the drive to a
+  different computer with different hardware, you may want it to re-test:
+
+     1. Open the .system folder (it is hidden, so turn on
+        "show hidden files" first).
+     2. Delete .gpu_verified and .cpu_mode if either one exists.
+     3. Run the launcher again. The 30-second test repeats for
+        the new hardware.
+
+  Most people never need to do this. It only matters if you
+  regularly use the drive on several machines with very different
+  hardware.
+
+
+  A NOTE FOR INTEL MAC USERS
+  ----------------------------------------------------------------
+  Good news: your Intel Mac runs the same premium Qwen3.5 model as
+  every other platform. It runs on your Mac's processor (CPU)
+  instead of the graphics chip, and uses the efficient 4-bit (Q4)
+  build of the model so it stays fast and doesn't swamp your RAM.
+  Replies come a little slower than on an Apple Silicon Mac, but
+  it's the same model and it's fully uncensored. Just plug in and go.
+
+
+================================================================
+  Below is the standard facts. welcome and legal information.
+================================================================
+
+================================================================
                         facts.
               Offline AI on a Flash Drive
            by Open Source Everything (OSE)
@@ -24,7 +89,7 @@ LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
 PARTICULAR PURPOSE, AND NONINFRINGEMENT.
 
 UNCENSORED AI NOTICE:
-The AI model on this drive (Qwen3-Abliterated) has had its
+The AI model on this drive (Qwen3.5-Abliterated) has had its
 safety guardrails intentionally removed. This means:
 
   1. It may generate content that is offensive, factually
@@ -88,10 +153,14 @@ license texts are included on this drive.
 
   WINDOWS USERS:  Double-click  WindowsLaunch.bat
   MAC USERS:      Double-click  MacLaunch.command
-  LINUX USERS:    Open a terminal in the drive folder and run:
-                    bash LinuxLaunch.sh
-                  (Linux file managers don't auto-execute .sh
-                  files. Terminal is the easiest path.)
+  LINUX USERS:    Double-click  "Launch facts (Linux)"
+                  (No extension — that's intentional. It's a
+                  small Linux binary that runs LinuxLaunch.sh
+                  for you, since most Linux file managers
+                  refuse to double-click .sh scripts directly.)
+
+                  Power users / terminal preferred? Run
+                  instead: bash LinuxLaunch.sh
 
 
   ~~ THE FIRST BOOT WILL TAKE A WHILE! ~~
@@ -99,10 +168,11 @@ license texts are included on this drive.
   Terminal will launch and you will see the initialization
   process begin.
 
-  ON LINUX, the FIRST launch ONLY runs an additional ~30-second
+  ON WINDOWS AND LINUX, the FIRST launch also runs a ~30-second
   GPU vs CPU benchmark to figure out which is faster on your
-  hardware. This only happens once. The result is cached and
-  every launch after that is fast.
+  hardware. This only happens once — the result is cached and
+  every launch after that is fast. (Macs skip this: Apple Silicon
+  always uses the GPU, Intel Macs always use the CPU.)
 
   After 30 seconds to a minute (or 60-90s on Linux first launch)
   you will see the start prompt:
@@ -135,8 +205,11 @@ license texts are included on this drive.
   - Press Ctrl+C twice to stop the conversation completely.
   - Or type /bye and press Enter.
 
-  All session data is automatically destroyed. Nothing is
-  saved to the drive or to your computer. Unplug when done.
+  Your conversation is never saved. History files are wiped on
+  every launch AND again when you exit, and the launcher clears
+  the chat off your screen when it closes. The only thing kept on
+  the drive is a tiny speed-test result (Windows/Linux only, see
+  above). Unplug when done.
 
 
   WHY DOES IT RUN IN TERMINAL?
@@ -159,8 +232,9 @@ license texts are included on this drive.
   8 GB RAM. It will work on most modern computers, especially
   gaming computers.
 
-  Mac users: Apple Silicon required (M1, M2, M3, M4 or newer).
-  Intel Macs are not supported.
+  Mac users: Apple Silicon (M1, M2, M3, M4 or newer) runs on the
+  GPU for full speed. Intel Macs work too, running on the CPU
+  (same model, just a little slower).
 
   Linux users: 64-bit x86_64 with glibc 2.32+ (any modern
   distro from 2021 onward). The launcher uses Vulkan for GPU
@@ -169,11 +243,72 @@ license texts are included on this drive.
   launcher's first-run benchmark picks whichever is faster.
 
 
+  ADVANCED TWEAKS (FOR THE CURIOUS):
+
+  The launchers are plain text scripts. You can open them with
+  any text editor (Notepad, TextEdit, nano) and tune two things.
+  Only change the exact lines named below. If you break a
+  launcher, download a fresh copy: github.com/WEAREOSE/facts
+
+  1) THINKING MODE (off by default)
+
+  This model can "think" before it answers: it writes out a
+  private chain of reasoning first, then gives the final answer.
+  We ship it OFF. Here's the honest data on what it's worth:
+  benchmark numbers show big gains from thinking on competition
+  math, hard logic puzzles, and complex code, and near-zero gains
+  on factual recall, practical how-to, and everyday chat (which
+  is most of what people ask). It also has real costs: you will
+  see the whole thinking monologue print in the terminal before
+  the answer (it looks strange the first time, that's normal),
+  answers can take several minutes on CPU-only machines, and
+  once in a while it rambles too long. If it gets stuck, press
+  Ctrl+C and relaunch.
+
+  To turn thinking ON:
+    Windows:  edit WindowsLaunch.bat, find the line containing
+              "--reasoning-budget 0" and delete that flag.
+    Linux:    edit LinuxLaunch.sh, same thing: delete
+              "--reasoning-budget 0".
+    Mac:      edit MacLaunch.command, find the lines starting
+              REASONING_FLAGS= (there are two, one for Apple
+              Silicon and one for Intel) and change the one for
+              your Mac to:  REASONING_FLAGS=""
+
+  To go back, restore the flag exactly as it was.
+
+  2) CONTEXT SIZE (the AI's working memory)
+
+  Context is how much conversation the AI can hold in its head
+  at once. The launcher sizes it to your RAM automatically
+  (8K tokens on 8GB machines, 16K on 16GB, 32K on 32GB) and the
+  model supports up to about 262K. If you have serious RAM
+  headroom you can raise it. The cost is real, the conversation
+  memory alone needs roughly:
+
+    32768   (32K)  ... ~4.6 GB RAM
+    65536   (64K)  ... ~9 GB RAM
+    131072  (128K) ... ~18 GB RAM  (32 GB machines and up)
+    262144  (262K) ... ~37 GB RAM  (64 GB machines)
+
+  ...on top of the model itself (2.7 to 4.5 GB). Set it too high
+  and the machine will crawl or the model won't load. Bigger
+  context also makes responses a little slower.
+
+  To change it: find CTX_SIZE in your launcher (a few lines pick
+  a size based on your RAM) and add your own line right BELOW
+  those, with the value you want:
+    Mac/Linux:  CTX_SIZE=65536
+    Windows:    set "CTX_SIZE=65536"
+
+
   WHAT'S ON THIS DRIVE:
 
   WindowsLaunch.bat      Windows launcher (double-click to start)
   MacLaunch.command      Mac launcher (double-click to start)
-  LinuxLaunch.sh         Linux launcher (run via terminal)
+  Launch facts (Linux)   Linux launcher (double-click to start)
+  LinuxLaunch.sh         Linux launcher (run via terminal — for
+                         advanced users who prefer the script)
   A GUIDE/               This README + per-platform troubleshooting
     READ_ME_FIRST.txt    This file
     TROUBLESHOOT_WIN.txt   Windows troubleshooting guide
@@ -226,18 +361,23 @@ license texts are included on this drive.
 
   The software powering this AI is "llama.cpp", developed by
   Georgi Gerganov and contributors. Native binaries are bundled
-  for each platform: ARM64 for Mac, x86_64 + Vulkan for Windows
-  and Linux.
+  for each platform: ARM64 and x86_64 for Mac (Apple Silicon and
+  Intel), x86_64 + Vulkan for Windows and Linux.
   License: MIT License
 
 
   THE MODEL (The "Brain"):
 
   The AI model included on this drive is
-  "Qwen3-4B-Instruct (Abliterated)".
+  "Qwen3.5-4B (Abliterated)".
 
-    * Base Model developed by: Alibaba Cloud (Qwen Team).
-    * Modified/Fine-tuned by: prithivMLmods (Hugging Face).
+    * Base model: Qwen3.5-4B by Alibaba Cloud (Qwen Team).
+      huggingface.co/Qwen/Qwen3.5-4B
+    * Abliteration (the uncensored build): wangzhang, made with
+      the Abliterix tool.
+      huggingface.co/wangzhang/Qwen3.5-4B-abliterated
+    * GGUF quantization (the .gguf model files): mradermacher.
+      huggingface.co/mradermacher/Qwen3.5-4B-abliterated-GGUF
     * License: Apache 2.0 License.
 
   This product includes software developed by Alibaba Cloud

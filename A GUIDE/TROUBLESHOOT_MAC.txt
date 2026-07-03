@@ -1,22 +1,35 @@
 ================================================================
               facts. TROUBLESHOOTING GUIDE
-                      macOS
+                      macOS  (v1.5)
 ================================================================
 
   This guide covers every known issue you may encounter when
   running facts. on a Mac. Work through the issues in order.
 
+  GOOD NEWS FIRST: v1.5 supports BOTH Apple Silicon and Intel
+  Macs. The launcher detects your Mac automatically:
+
+    - Apple Silicon (M1/M2/M3/M4): runs on the Metal GPU.
+      You'll see "Architecture: Apple Silicon [Metal GPU]"
+      when it starts.
+    - Intel Mac: runs on the CPU. You'll see
+      "Architecture: Intel Mac [CPU]" when it starts.
+      Intel is slower (roughly 7.7 tokens per second) but
+      fully supported and fully functional.
+
   QUICK FIXES FIRST:
-    1. Download the latest launcher from:
-       https://github.com/WEAREOSE/facts
-       Replace MacLaunch.command on the drive with the new one.
-       This fixes most issues.
+    1. Make sure you have the latest launcher.
+       Download from:
+         https://github.com/WEAREOSE/facts
+       Replace MacLaunch.command on the drive with the new
+       one. This fixes most issues people hit on macOS 14
+       and macOS 15.
 
     2. Need help? Use our LLM Engineer at:
-       https://opensourceeverything.io
-       Click the wrench icon in the bottom-right corner.
-       He can diagnose your system, write custom fixes, and
-       even help you build on top of the drive.
+         https://opensourceeverything.io
+       Click the wrench icon in the bottom-right. It can
+       diagnose your system, write custom fixes, or walk you
+       through the more advanced options below.
 
 
 ================================================================
@@ -43,6 +56,19 @@
        "MacLaunch.command was blocked."
     4. Click "Open Anyway."
 
+  NOTE FOR macOS 15 (SEQUOIA):
+
+    On macOS Sequoia, even after using Fix A or Fix B above,
+    the launcher sometimes still won't open if you double-
+    click it again later. This is because Sequoia
+    re-applies the quarantine flag to files on external
+    drives every time they're remounted.
+
+    If that happens, skip to Fix C below (Terminal) and run
+    the xattr command. That permanently strips the
+    quarantine flag from everything in the .system folder
+    so the launcher opens normally going forward.
+
   FIX (Method C -- Terminal):
 
     If the above methods fail, open Terminal manually:
@@ -63,7 +89,7 @@
   ISSUE 2: "Permission denied" error in Terminal
 ================================================================
 
-  CAUSE: The llama-cli binary does not have execute permission.
+  CAUSE: The AI engine does not have execute permission.
   The launch script normally fixes this automatically, but
   sometimes macOS blocks it.
 
@@ -74,7 +100,7 @@
        after each:
 
        xattr -r -d com.apple.quarantine /Volumes/facts/.system
-       chmod +x /Volumes/facts/.system/llama-cli
+       chmod -R +x /Volumes/facts/.system
 
     3. Now try launching again:
 
@@ -84,7 +110,8 @@
     - The first command removes Apple's quarantine flag from
       all files in the .system folder.
     - The second command grants execute permission to the
-      AI engine binary.
+      AI engine binaries (this covers both the Apple Silicon
+      engine and the Intel engine in .system/x86_64).
 
 
 ================================================================
@@ -139,21 +166,46 @@
     3. You should see a folder called .system.
     4. Open it. You should see these files:
        - llama-cli
-       - Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf
-       - Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf
+       - Qwen3.5-4B-abliterated.Q8_0.gguf
+       - Qwen3.5-4B-abliterated.Q4_K_M.gguf
+       - a folder called x86_64 (this holds the Intel Mac
+         engine; Apple Silicon Macs don't use it, but it
+         should still be there)
 
     If any of these files are missing, the drive may be
     corrupted. Contact us for a replacement (see bottom).
+    Every drive is covered by our 30-day replacement
+    guarantee.
+
+  RELATED ERROR: "[ERROR] AI engine not found for your Mac"
+
+    This means the models are fine but the engine binary for
+    your Mac's architecture is missing. Same fix: check the
+    .system folder, and if files are missing, contact us.
 
 
 ================================================================
   ISSUE 5: The AI loads but is extremely slow
 ================================================================
 
+  FIRST, KNOW WHAT "NORMAL" LOOKS LIKE:
+
+    - Apple Silicon runs on the Metal GPU and is fast.
+    - Intel Macs run on the CPU at roughly 7.7 tokens per
+      second. That is noticeably slower than Apple Silicon
+      but completely normal and fully usable. If your Intel
+      Mac is producing steady text at a reading pace, nothing
+      is wrong.
+
   CAUSE A -- Not enough RAM:
     The AI requires at least 8 GB of RAM. If your Mac is
     using most of its RAM for other applications, performance
     will suffer.
+
+    The launcher checks your FREE RAM at startup. If it's
+    low, you'll see a "[WARNING]" line telling you how much
+    RAM is free and to close other apps (about 4 GB+ free is
+    recommended).
 
     HOW TO CHECK YOUR RAM:
     1. Click the Apple menu > About This Mac.
@@ -169,6 +221,20 @@
     TIP: Close all other applications before launching facts.
     Web browsers are especially RAM-hungry. Quit Chrome,
     Safari, or Firefox before launching.
+
+  NOTE ON Q8 vs Q4 (Apple Silicon):
+    The launcher picks the model quality automatically. On
+    Apple Silicon it loads the bigger Q8 model ("Loading:
+    High Performance (Q8)") only when you have 16 GB+ total
+    RAM AND about 8 GB+ currently free. If your 16 GB Mac is
+    busy, it will pick the smaller Q4 model ("Loading:
+    Efficiency Mode (Q4)") instead. That is intentional, not
+    a bug: it keeps the AI out of swap so it stays fast. If
+    you want Q8, close your other apps and relaunch.
+
+    Intel Macs always use Q4 ("Loading: Efficiency Mode
+    (Q4, CPU-optimized)"). That is also intentional; Q4 is
+    the fast, stable choice on Intel.
 
   CAUSE B -- USB port or adapter issue:
     If the drive is connected through a USB hub, dongle, or
@@ -198,16 +264,20 @@
   ISSUE 6: The AI crashes or freezes mid-conversation
 ================================================================
 
-  CAUSE A -- RAM ran out:
-    If the conversation gets very long, the AI's context window
-    fills up and may exceed available RAM.
+  CAUSE A -- Context window filled up:
+    The launcher sizes the conversation memory (the "context
+    window") to your RAM automatically: 8K on 8 GB machines,
+    16K on 16 GB, and 32K on 32 GB or more. If a conversation
+    runs very long, that window fills up and things can get
+    weird or grind to a halt.
 
-    FIX: Exit (Ctrl+C) and relaunch. The Nuclear Wipe clears
-    the context. Start a fresh conversation.
+    FIX: Exit (Ctrl+C) and relaunch. The launcher wipes the
+    old context. Start a fresh conversation.
 
   CAUSE B -- Ghost process:
     A previous llama-cli process may still be running in the
-    background, consuming resources.
+    background, consuming resources. The launcher kills these
+    automatically at startup, but if one is stuck:
 
     FIX:
     1. Open Terminal.
@@ -218,7 +288,7 @@
     3. Relaunch MacLaunch.command.
 
   CAUSE C -- Drive was disconnected:
-    If the USB drive loses connection (bumped, loose port,
+    If the flash drive loses connection (bumped, loose port,
     adapter issue), the AI will crash because it can no longer
     read the model file.
 
@@ -243,15 +313,20 @@
        except Terminal before launching.
 
   FIX (Compatibility):
-    The llama-cli binary on this drive is compiled for Apple
-    Silicon (M1/M2/M3/M4). It will NOT run on older Intel
-    Macs.
+    v1.5 supports BOTH Apple Silicon (M1/M2/M3/M4) and Intel
+    Macs. The launcher picks the right engine automatically,
+    so architecture crashes should not happen on a healthy
+    drive.
 
-    HOW TO CHECK:
+    If you see "[ERROR] Unsupported Mac architecture" at
+    launch, your Mac reported an architecture we don't ship
+    an engine for (extremely rare). Contact us with your Mac
+    model and we'll sort it out.
+
+    HOW TO CHECK YOUR MAC:
     1. Click the Apple menu > About This Mac.
-    2. Look for "Chip" -- it should say M1, M2, M3, M4, or
-       similar. If it says "Intel," this drive is not
-       compatible with your Mac.
+    2. Look for "Chip" (Apple Silicon) or "Processor"
+       (Intel). Either one works with this drive.
 
 
 ================================================================
@@ -263,13 +338,27 @@
   from earlier prompts influences behavior.
 
   FIX:
-    1. Exit the session (Ctrl+C or type /bye).
+    1. Exit the session (Ctrl+C).
     2. Relaunch MacLaunch.command.
-    3. The Nuclear Wipe clears all context. The AI starts
-       fresh with no memory of the previous conversation.
+    3. The launcher wipes all context at every launch. The AI
+       starts fresh with no memory of the previous
+       conversation.
     4. Rephrase your question. The abliterated model is
        designed to answer directly, but rephrasing can help
        if a particular wording triggers legacy guardrails.
+
+  NOTE ON PRIVACY (this is a feature, not a bug):
+    Chat history is wiped at every launch AND at exit. When
+    you exit, the launcher also clears the screen and the
+    Terminal scrollback, so no trace of the conversation is
+    left behind. If your conversation "disappears" when you
+    quit, that's the zero-log design working as intended.
+
+  NOTE ON THINKING MODE:
+    Thinking mode (where the AI reasons out loud before
+    answering) is OFF by default for faster, cleaner answers.
+    If you want to turn it on, the steps are in
+    READ_ME_FIRST.txt on the drive, under ADVANCED TWEAKS.
 
 
 ================================================================
@@ -285,6 +374,13 @@
     3. Set the font to Menlo or SF Mono, size 13 or 14.
     4. Resize the Terminal window wider if text is wrapping
        in awkward places.
+
+  NOTE ON THE OSE LOGO:
+    An OSE logo (ASCII art) prints at the top when the
+    launcher starts. If it looks mangled in a small window,
+    just widen the window. And if the logo doesn't appear at
+    all, don't worry: the launcher works exactly the same
+    without it.
 
 
 ================================================================
@@ -304,6 +400,8 @@
   CAUSE C -- Drive is damaged:
     If the drive does not appear in Disk Utility at all, the
     hardware may be defective. Contact us for a replacement.
+    Every drive is covered by our 30-day replacement
+    guarantee.
 
 
 ================================================================
@@ -314,7 +412,8 @@
   We are real people and we will help you.
 
   Before contacting us, please note:
-    - Your Mac model (e.g., MacBook Air M2)
+    - Your Mac model (e.g., MacBook Air M2, or an Intel
+      MacBook Pro)
     - Your macOS version (e.g., macOS 15 Sequoia)
     - Your RAM (e.g., 8 GB or 16 GB)
     - The exact error message you see (a screenshot helps)

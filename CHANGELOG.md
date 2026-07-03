@@ -6,7 +6,31 @@ For setup help see [README.md](README.md).
 
 ---
 
-## Build 5 — April 25, 2026 *(current)*
+## facts. v1.5 — July 2026 *(current, this branch)*
+
+The premium edition. Everything below ships on facts. v1.5 drives.
+
+### Changed
+- **New model: Qwen3.5-4B abliterated** (wangzhang abliteration, mradermacher GGUF quants) replaces Qwen3-4B-Instruct on every platform. Blind-judged head-to-head against the old model on identical hardware: the new model won 8 of 10 test prompts.
+- **Intel Macs are now supported.** The Mac launcher detects your hardware and dispatches: Apple Silicon runs the Metal GPU engine (roughly 20 tokens/sec), Intel Macs run a custom CPU build from `.system/x86_64/` (roughly 7.7 tokens/sec, always Q4).
+- **Context window now scales with RAM:** 8K default, 16K on 16GB machines, 32K on 32GB+. (Previously fixed at 8K.)
+- **Windows GPU detection rebuilt:** the nvidia-smi VRAM check is gone. Windows now runs the same first-launch GPU-vs-CPU smart benchmark as Linux (any Vulkan GPU: NVIDIA, AMD, Intel) and caches the winner. Note: Build 5's warning about `-ngl auto` applied to the old engine; the v1.5 engine plus the per-machine benchmark makes it safe.
+- **Thinking mode ships OFF** for fast, direct answers (`--reasoning-budget 0`, or `--reasoning off` on the Intel Mac build). Enabling it manually is documented in READ_ME_FIRST.txt under ADVANCED TWEAKS.
+
+### Added
+- **OSE boot logo** — the launchers print `ose-logo.txt` at startup (copy it into `.system/`).
+- **Linux double-click launcher** — `Launch facts (Linux)` ELF wrapper, no terminal needed.
+- **Exit wipe** — zero-log now covers exit too: history is wiped and the screen + scrollback cleared when you leave.
+- **Failed benchmarks are no longer cached** — a stalled first-run bench (antivirus, busy machine) means CPU for that session only; the GPU is re-tested next launch.
+- **A GUIDE refresh** — READ_ME_FIRST.txt (credits, honest platform notes, ADVANCED TWEAKS for thinking mode + context size) and all three TROUBLESHOOT guides rewritten for v1.5.
+
+### Fixed
+- **16GB machines were getting 8K context instead of 16K** on Linux and Windows (the OS reports slightly under the nominal RAM; the tier thresholds now account for it).
+- **macOS 128KB cluster formatting** in our build pipeline was silently failing; retail v1.5 drives now genuinely ship with 128KB allocation units (verified on hardware).
+
+---
+
+## Build 5 — April 25, 2026
 
 ### Fixed
 - **Acer Nitro 5 / RTX 3050 Laptop 4GB GPU crash on Windows.** The previous launcher hardcoded full-GPU offload (`-ngl 99`) regardless of how much VRAM the card had. On laptops with NVIDIA GPUs ≤4 GB VRAM, this caused `ErrorOutOfDeviceMemory: failed to allocate Vulkan1 buffer of size ~1 GB` and the AI never loaded. Affects RTX 3050 Laptop, RTX 4050 Laptop, GTX 1650 Mobile, and similar low-VRAM NVIDIA laptops.
