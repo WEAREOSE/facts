@@ -8,6 +8,19 @@ Built by [Open Source Everything](https://opensourceeverything.io) — *for the 
 
 ---
 
+## ⚡ Which drive do you have?
+
+There are two facts. drives. Grab the files that match yours:
+
+| Your drive | Model files in `.system/` | Where to get updates |
+|---|---|---|
+| **facts.** (original, $29.99) | `Qwen3-4B-Instruct-2507-abliterated.*.gguf` | **Right here** — this page's files are for you |
+| **facts. v1.5** (premium, $49.99) | `Qwen3.5-4B-abliterated.*.gguf` | **[The v1.5 branch →](https://github.com/WEAREOSE/facts/tree/v1.5)** |
+
+Not sure? Open your drive's hidden `.system` folder and check the model file names, or look at the drive: v1.5 has the custom OSE drive icon. Using the wrong version's launchers will give a "model not found" error (harmless, just grab the right ones).
+
+---
+
 ## What Is This?
 
 This is the complete, open-source build for the **facts.** AI flash drive. Everything you need to build your own is right here — the launcher scripts, the guide files, the licenses, and the folder structure. Download the AI engine binaries and model files separately (links below), drop them in `.system/`, and you've got the same product we sell.
