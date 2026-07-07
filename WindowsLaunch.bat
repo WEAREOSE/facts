@@ -39,7 +39,7 @@ if not exist "%BINARY%" (
 
 cls
 chcp 65001 >nul
-type "%SYSTEM_DIR%\ose-logo.txt" 2>nul
+type "%SYSTEM_DIR%\ose-logo-win.txt" 2>nul
 echo ----------------------------------------------------------------
 echo   INITIALIZING QWEN AI [WINDOWS]...
 echo ----------------------------------------------------------------

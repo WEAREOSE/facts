@@ -1,0 +1,11 @@
+# macOS filesystem cruft — keep out of the repo
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.DocumentRevisions-V100
+
+# NOTE: .metadata_never_index is INTENTIONAL — it ships on the drive to tell
+# macOS Spotlight not to index the volume. Do NOT ignore it.
