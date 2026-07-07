@@ -42,6 +42,7 @@ export VK_LOADER_LAYERS_DISABLE=~implicit~
 # Clear Screen & Set Title
 printf "\033]0;Qwen AI - Linux Launcher\007"
 clear
+cat "$SYSTEM_DIR/ose-logo.txt" 2>/dev/null
 echo "----------------------------------------------------------------"
 echo "  INITIALIZING QWEN AI [LINUX]..."
 echo "----------------------------------------------------------------"
