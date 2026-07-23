@@ -139,6 +139,8 @@
        - ggml-vulkan.dll
        - several ggml-cpu-*.dll files
        - bench-decide.ps1
+       - vcruntime140.dll, vcruntime140_1.dll, and
+         msvcp140.dll (Microsoft runtime files)
 
     If files are missing, the drive may be corrupted.
     Contact us for a replacement (see bottom).
@@ -425,6 +427,26 @@
 
     Settings > Update & Security > Windows Update >
     Check for updates.
+
+
+================================================================
+  ISSUE 15: "VCRUNTIME140.dll was not found" error
+================================================================
+
+  CAUSE: Your Windows install is missing Microsoft's Visual
+  C++ runtime. This is common on brand-new or freshly reset
+  PCs. The same error can also name MSVCP140.dll or
+  VCRUNTIME140_1.dll. Windows reports them one at a time,
+  but one install fixes all three.
+
+  Newer drives include these files in .system\windows\ and
+  never show this error.
+
+  FIX: Install Microsoft's official VC++ Redistributable:
+    1. Go to:
+       learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
+    2. Download the X64 installer (vc_redist.x64.exe).
+    3. Run it, then relaunch WindowsLaunch.bat.
 
 
 ================================================================
