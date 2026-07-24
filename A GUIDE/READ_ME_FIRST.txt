@@ -88,10 +88,14 @@ license texts are included on this drive.
 
   WINDOWS USERS:  Double-click  WindowsLaunch.bat
   MAC USERS:      Double-click  MacLaunch.command
-  LINUX USERS:    Open a terminal in the drive folder and run:
-                    bash LinuxLaunch.sh
-                  (Linux file managers don't auto-execute .sh
-                  files. Terminal is the easiest path.)
+  LINUX USERS:    Double-click  "Launch facts (Linux)"
+                  (No extension — that's intentional. It's a
+                  small Linux binary that runs LinuxLaunch.sh
+                  for you, since most Linux file managers
+                  refuse to double-click .sh scripts directly.)
+
+                  Power users / terminal preferred? Run
+                  instead: bash LinuxLaunch.sh
 
 
   ~~ THE FIRST BOOT WILL TAKE A WHILE! ~~
@@ -173,7 +177,9 @@ license texts are included on this drive.
 
   WindowsLaunch.bat      Windows launcher (double-click to start)
   MacLaunch.command      Mac launcher (double-click to start)
-  LinuxLaunch.sh         Linux launcher (run via terminal)
+  Launch facts (Linux)   Linux launcher (double-click to start)
+  LinuxLaunch.sh         Linux launcher (run via terminal — for
+                         advanced users who prefer the script)
   A GUIDE/               This README + per-platform troubleshooting
     READ_ME_FIRST.txt    This file
     TROUBLESHOOT_WIN.txt   Windows troubleshooting guide

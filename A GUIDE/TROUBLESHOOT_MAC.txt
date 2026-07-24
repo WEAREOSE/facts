@@ -7,16 +7,18 @@
   running facts. on a Mac. Work through the issues in order.
 
   QUICK FIXES FIRST:
-    1. Download the latest launcher from:
-       https://github.com/WEAREOSE/facts
-       Replace MacLaunch.command on the drive with the new one.
-       This fixes most issues.
+    1. Make sure you have the latest launcher (Build 5).
+       Download from:
+         https://github.com/WEAREOSE/facts
+       Replace MacLaunch.command on the drive with the new
+       one. This fixes most issues people hit on macOS 14
+       and macOS 15.
 
     2. Need help? Use our LLM Engineer at:
-       https://opensourceeverything.io
-       Click the wrench icon in the bottom-right corner.
-       He can diagnose your system, write custom fixes, and
-       even help you build on top of the drive.
+         https://opensourceeverything.io
+       Click the wrench icon in the bottom-right. It can
+       diagnose your system, write custom fixes, or walk you
+       through the more advanced options below.
 
 
 ================================================================
@@ -42,6 +44,19 @@
     3. Scroll down. You should see a message like
        "MacLaunch.command was blocked."
     4. Click "Open Anyway."
+
+  NOTE FOR macOS 15 (SEQUOIA):
+
+    On macOS Sequoia, even after using Fix A or Fix B above,
+    the launcher sometimes still won't open if you double-
+    click it again later. This is because Sequoia
+    re-applies the quarantine flag to files on external
+    drives every time they're remounted.
+
+    If that happens, skip to Fix C below (Terminal) and run
+    the xattr command. That permanently strips the
+    quarantine flag from everything in the .system folder
+    so the launcher opens normally going forward.
 
   FIX (Method C -- Terminal):
 
