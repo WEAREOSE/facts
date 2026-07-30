@@ -59,6 +59,12 @@ echo "  Cache Status: Wiped Clean"
 # llama.cpp where the std::regex tokenizer crash (#21919) is fixed.
 MODEL_HIGH="$SYSTEM_DIR/Qwen3.5-4B-abliterated.Q8_0.gguf"
 MODEL_LOW="$SYSTEM_DIR/Qwen3.5-4B-abliterated.Q4_K_M.gguf"
+# Different drive versions ship different model filenames. If this
+# launcher's names aren't on the drive, find whatever Qwen build is.
+if [ ! -f "$MODEL_HIGH" ] && [ ! -f "$MODEL_LOW" ]; then
+    for _f in "$SYSTEM_DIR"/Qwen*.Q8_0.gguf;   do [ -f "$_f" ] && MODEL_HIGH="$_f"; done
+    for _f in "$SYSTEM_DIR"/Qwen*.Q4_K_M.gguf; do [ -f "$_f" ] && MODEL_LOW="$_f"; done
+fi
 
 # 6b. ARCH DISPATCH (Build 6 — May 27, 2026)
 #   Apple Silicon (arm64) → use Metal-enabled binary in .system/, full GPU offload,

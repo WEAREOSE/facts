@@ -22,7 +22,7 @@ if [ ! -f "$BINARY" ]; then
     echo "  The AI engine is missing. Your drive may be corrupted."
     echo ""
     echo "  Need help? Visit opensourceeverything.io and use the support chat."
-    echo "  Updated launchers: github.com/WEAREOSE/facts"
+    echo "  Updated launchers: github.com/WEAREOSE/facts/tree/v1.5"
     echo ""
     read -p "  Press Enter to exit..."
     exit 1
@@ -76,6 +76,12 @@ fi
 # 6. DEFINE MODELS
 MODEL_HIGH="$SYSTEM_DIR/Qwen3.5-4B-abliterated.Q8_0.gguf"
 MODEL_LOW="$SYSTEM_DIR/Qwen3.5-4B-abliterated.Q4_K_M.gguf"
+# Different drive versions ship different model filenames. If this
+# launcher's names aren't on the drive, find whatever Qwen build is.
+if [ ! -f "$MODEL_HIGH" ] && [ ! -f "$MODEL_LOW" ]; then
+    for _f in "$SYSTEM_DIR"/Qwen*.Q8_0.gguf;   do [ -f "$_f" ] && MODEL_HIGH="$_f"; done
+    for _f in "$SYSTEM_DIR"/Qwen*.Q4_K_M.gguf; do [ -f "$_f" ] && MODEL_LOW="$_f"; done
+fi
 # Context window sized to RAM — KV for this 4B model is ~144KB/token (16K≈2.3GB, 32K≈4.6GB).
 # 8K floor keeps 8GB machines safe; larger windows on roomier ones. (memory 32 C1)
 # Tiers are nominal-minus-1 (15/30, not 16/32): Linux under-reports total RAM after the
@@ -189,6 +195,6 @@ echo ""
 echo "  If it stopped unexpectedly:"
 echo "  - Try closing other apps to free up RAM, then relaunch."
 echo "  - Need help? Visit opensourceeverything.io [support chat]"
-echo "  - Updated launchers: github.com/WEAREOSE/facts"
+echo "  - Updated launchers: github.com/WEAREOSE/facts/tree/v1.5"
 echo "----------------------------------------------------------------"
 read -p "  Press Enter to exit..."
