@@ -25,6 +25,12 @@ set "BINARY=%WIN_DIR%\llama-cli.exe"
 
 set "MODEL_HIGH=%SYSTEM_DIR%\Qwen3-4B-Instruct-2507-abliterated.Q8_0.gguf"
 set "MODEL_LOW=%SYSTEM_DIR%\Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf"
+:: Different drive versions ship different model filenames. If this
+:: launcher's names aren't on the drive, find whatever Qwen build is.
+if not exist "%MODEL_HIGH%" if not exist "%MODEL_LOW%" (
+    for %%F in ("%SYSTEM_DIR%\Qwen*.Q8_0.gguf") do set "MODEL_HIGH=%%~fF"
+    for %%F in ("%SYSTEM_DIR%\Qwen*.Q4_K_M.gguf") do set "MODEL_LOW=%%~fF"
+)
 
 :: 3. PRE-FLIGHT CHECK
 if not exist "%BINARY%" (
